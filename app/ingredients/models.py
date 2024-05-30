@@ -1,3 +1,8 @@
 from django.db import models
+from common.models import CommonDateModel
 
-# Create your models here.
+
+class Ingredient(CommonDateModel):
+
+    name = models.CharField(max_length=255, null=True, blank=True)
+    image = models.URLField(null=True, default=None)
