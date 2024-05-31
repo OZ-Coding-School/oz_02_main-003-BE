@@ -25,16 +25,20 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, CommonDateModel):
     """시스템 내 개별 사용자를 나타내는 사용자 모델입니다."""
 
+    GENDER_CHOICES = [
+        (False, 'Male'),
+        (True, 'Female'),
+    ]
     email = models.EmailField(unique=True, null=True, blank=True)
     name = models.CharField(max_length=255, null=True, blank=True)
-    gender = models.BooleanField(default=False, null=True, blank=True)
+    gender = models.BooleanField(choices=GENDER_CHOICES, null=True, blank=True)
     age = models.PositiveIntegerField(null=True, default=None)
     nickname = models.CharField(max_length=20, unique=True, null=True, blank=True)
     image = models.URLField(null=True, default=None, blank=True)
     is_staff = models.BooleanField(default=False, null=True, blank=True)
     is_login = models.BooleanField(default=False, null=True, blank=True)
     is_alert = models.BooleanField(default=False, null=True, blank=True)
-
+    social = models.CharField(max_length=15, null=True)
     objects = UserManager()
 
     USERNAME_FIELD = "email"
