@@ -22,17 +22,13 @@ class Recipe(CommonDateModel):
 
 
 class Unit(CommonDateModel):
-
-    code = models.PositiveIntegerField(primary_key=True)
+    id = models.PositiveIntegerField(primary_key=True)
     unit = models.CharField(max_length=20, null=True, blank=True)
 
 
 class Recipe_ingredient(CommonDateModel):
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
-    code = models.ForeignKey(
-        Unit, related_name="code_recipe_ingredients", on_delete=models.CASCADE
-    )
     unit = models.ForeignKey(
         Unit, related_name="unit_recipe_ingredients", on_delete=models.CASCADE
     )
