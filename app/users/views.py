@@ -13,6 +13,7 @@ from .services import (
 
 User = get_user_model()
 
+from users.utils import get_or_create_social_user
 
 class KakaoLoginView(APIView):
     def get(self, request):
@@ -37,15 +38,10 @@ class KakaoLoginCallbackView(APIView):
             return Response(status=400)
 
         access_token = kakao_get_access_token(code)
-        user_data = kakao_get_user_info(access_token=access_token)
-
-        # kakao 회원정보 요청
-        auth_headers = {
-            "Authorization": access_token,
-            "Content-type": "application/x-www-form-urlencoded;charset=utf-8",
-        }
-
-        return Response(user_data)
+        user_info = kakao_get_user_info(access_token=access_token)
+        print(user_info["properties"])
+        user_data = get_or_create_social_user(type="kakao", id=user_info["id"], image=user_info["properties"]["thumbnail_image"])
+        return Response(user_data.social_id)
 
 
 class GoogleLoginView(APIView):
