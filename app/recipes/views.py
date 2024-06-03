@@ -2,10 +2,10 @@ from django.shortcuts import render
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import NotFound
 
-from .models import Recipe, Recipe_ingredient, Recipe_step
+from .models import Recipe
 from .serializers import RecipeSerializer
-from users.models import User
 
 class RecipeRecommendView(APIView):
 
@@ -58,13 +58,23 @@ class CreateRecipe(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class RecipeDetailDeleteView(APIView):
-
     def get(self, request, id):
         return Response({"레시피 조회": id})
 
-    def delete(self, request, id):
-        return Response({"레시피 삭제": id})
+    def get_object(self, id):
+        try:
+            return Recipe.objects.get(pk=id)
+        except Recipe.DoesNotExist:
+            raise NotFound(f"ID {id}에 해당하는 레시피를 찾을 수 없습니다.")
 
+    def delete(self, request, id):
+        recipe = self.get_object(id)
+        recipe.delete()
+        data = {
+            "status": 200,
+            "message": "레시피 삭제 성공"
+        }
+        return Response(data, status=status.HTTP_200_OK)
 
 class RecipeCategoryListView(APIView):
 
