@@ -4,8 +4,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import NotFound
 
-from .models import Recipe
+from .models import Recipe, Recipe_ingredient, Recipe_step
 from .serializers import RecipeSerializer
+from bookmarks.models import Bookmark
+from likes.models import Like
+from comments.models import Comment
 
 class RecipeRecommendView(APIView):
 
@@ -59,7 +62,52 @@ class CreateRecipe(APIView):
 
 class RecipeDetailDeleteView(APIView):
     def get(self, request, id):
-        return Response({"레시피 조회": id})
+        try:
+            recipe = Recipe.objects.get(pk=id)
+            bookmarks_count = Bookmark.objects.filter(recipe_id=id).count()
+            likes_count = Like.objects.filter(recipe_id=id).count()
+            ingredients = Recipe_ingredient.objects.filter(recipe_id=id)
+            steps = Recipe_step.objects.filter(recipe_id=id)
+            # __ -> Comment 모델의 외래 키 User 모델의 id, nickname을 가져온다 
+            # select_related -> 역참조 (User FK Comment)
+            comments = Comment.objects.filter(recipe_id=id).select_related('user').values('id', 'user__id', 'user__nickname', 'updated_at', 'comment')
+            serializer = RecipeSerializer(recipe)
+            data = {
+                "status": status.HTTP_200_OK,
+                "message": "레시피 조회 성공",
+                "data": {
+                    # ** -> dict의 키-쌍 값을 개별적으로 펼쳐서 사용 가능
+                    **serializer.data,
+                    "bookmarks": bookmarks_count,
+                    "likes": likes_count,
+                    "user": {
+                        "id": recipe.user.id,
+                        "nickname": recipe.user.nickname,
+                        "date": recipe.updated_at
+                    },
+                    "ingredients": [
+                        {
+                            "id": ingredient.id,
+                            "name": ingredient.ingredient.name,
+                            "quantity": ingredient.quantity,
+                            "unit": ingredient.unit.unit
+                        } for ingredient in ingredients
+                    ],
+                    "steps": [
+                        {
+                            "step": step.step,
+                            "image": step.image
+                        } for step in steps
+                    ],
+                    "comments": list(comments)
+                }
+            }
+            return Response(data)
+        except Recipe.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": f"ID {id}에 해당하는 레시피를 찾을 수 없습니다."
+            }, status=status.HTTP_404_NOT_FOUND)
 
     def get_object(self, id):
         try:
