@@ -88,36 +88,35 @@ class GoogleLoginCallbackView(APIView):
         google_token_api = "https://oauth2.googleapis.com/token"
 
         access_token = google_get_access_token(google_token_api, code)
-        user_data = google_get_user_info(access_token=access_token)
+        user_info = google_get_user_info(access_token=access_token)
+        user = get_or_create_social_user(
+            type="google",
+            id=user_info["sub"],
+            image=user_info["picture"],
+        )
 
-        """
-        "sub": "114379102616868503357",
-        114379102616868503357
-        "name": "윤준명",
-        "givenName": "준명",
-        "familyName": "윤",
-        "picture": "https://lh3.googleusercontent.com/a/ACg8ocJ3W3XHC9ts4R8Lo7PNNLQDeji-hp6trLn39ic2shznfcpGxw=s96-c",
-        "email": "wnsaud2233@gmail.com",
-        "emailVerified": true,
-        "locale": "ko"
-        """
+        refresh_token = TokenCreator.create_token_by_data(
+            user_id=user.id,
+            claims={"is_staff": user.is_staff, "social_id": user.social_id},
+        )
 
-        profile_data = {
-            "username": user_data["email"],
-            "first_name": user_data.get("given_name", ""),
-            "last_name": user_data.get("family_name", ""),
-            "nickname": user_data.get("nickname", ""),
-            "name": user_data.get("name", ""),
-            "image": user_data.get("picture", None),
-            "social": "google",
+        refresh_token_data = {
+            "user": user,
+            "token": str(refresh_token),
+            "estimate": timezone.now() + refresh_token.lifetime,
         }
-        # user, _ = social_user_get_or_create(**profile_data)
 
-        # response = redirect('https://naver.com')
-        # response = jwt_login(response=response, user=user)
+        User_refresh_token.objects.update_or_create(
+            defaults=refresh_token_data, **{"user": user}
+        )
 
-        # return response
-        return Response(user_data)
+        response = Response({"status": 200, "message": "로그인 성공"})
+        response.set_cookie("access", str(refresh_token.access_token), httponly=True)
+
+        user.last_login = timezone.now()
+        user.save()
+
+        return response
 
 
 class LoginView(APIView):
