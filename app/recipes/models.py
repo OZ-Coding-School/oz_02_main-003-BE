@@ -13,9 +13,9 @@ class Recipe(CommonDateModel):
     like_count = models.IntegerField(default=0, null=True, blank=True)
     bookmark_count = models.IntegerField(default=0, null=True, blank=True)
     comment_count = models.IntegerField(default=0, null=True, blank=True)
-    image1 = models.URLField()  # 필수 필드
-    image2 = models.URLField(null=True, default=None)  # 선택 필드
-    image3 = models.URLField(null=True, default=None)  # 선택 필드
+    image_1 = models.URLField()  # 필수 필드
+    image_2 = models.URLField(null=True, default=None)  # 선택 필드
+    image_3 = models.URLField(null=True, default=None)  # 선택 필드
 
     def __str__(self):
         return self.title
