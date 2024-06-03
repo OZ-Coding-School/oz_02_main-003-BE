@@ -37,8 +37,8 @@ class User(AbstractBaseUser, CommonDateModel):
     image = models.URLField(null=True, default=None, blank=True)
     is_staff = models.BooleanField(default=False, null=True, blank=True)
     is_login = models.BooleanField(default=False, null=True, blank=True)
-    is_alert = models.BooleanField(default=False, null=True, blank=True)
-    social = models.CharField(max_length=15, null=True)
+    is_alert = models.BooleanField(default=True, null=True, blank=True)
+    social = models.CharField(max_length=100, null=True)
     objects = UserManager()
 
     USERNAME_FIELD = "email"
