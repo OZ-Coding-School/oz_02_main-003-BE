@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from django.shortcuts import redirect
 from common.data.envdata import GOOGLE_OAUTH2_CLIENT_ID, KAKAO_OAUTH2_CLIENT_ID
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from .services import (
     kakao_get_access_token,
@@ -13,7 +14,9 @@ from .services import (
 
 User = get_user_model()
 
-from users.utils import get_or_create_social_user
+from users.utils import get_or_create_social_user, TokenCreator
+from users.models import User_refresh_token
+
 
 class KakaoLoginView(APIView):
     def get(self, request):
@@ -23,13 +26,11 @@ class KakaoLoginView(APIView):
         response = redirect(
             f"{kakao_auth_api}?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code"
         )
-        print(f"{kakao_auth_api}?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code")
         return response
 
 
 class KakaoLoginCallbackView(APIView):
     def get(self, request):
-        print(1)
         data = request.query_params.copy()
 
         # access_token 발급 요청
@@ -39,9 +40,31 @@ class KakaoLoginCallbackView(APIView):
 
         access_token = kakao_get_access_token(code)
         user_info = kakao_get_user_info(access_token=access_token)
-        print(user_info["properties"])
-        user_data = get_or_create_social_user(type="kakao", id=user_info["id"], image=user_info["properties"]["thumbnail_image"])
-        return Response(user_data.social_id)
+        user = get_or_create_social_user(
+            type="kakao",
+            id=user_info["id"],
+            image=user_info["properties"]["thumbnail_image"],
+        )
+        refresh_token = TokenCreator.create_token_by_data(
+            user_id=user.id,
+            claims={"is_staff": user.is_staff, "social_id": user.social_id},
+        )
+        refresh_token_data = {
+            "user": user,
+            "token": str(refresh_token),
+            "estimate": timezone.now() + refresh_token.lifetime,
+        }
+        User_refresh_token.objects.update_or_create(
+            defaults=refresh_token_data, **{"user": user}
+        )
+
+        response = Response({"status": 200, "message": "로그인 성공"})
+        response.set_cookie("access", str(refresh_token.access_token), httponly=True)
+
+        user.last_login = timezone.now()
+        user.save()
+
+        return response
 
 
 class GoogleLoginView(APIView):

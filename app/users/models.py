@@ -45,5 +45,5 @@ class User(AbstractBaseUser, CommonDateModel):
 
 class User_refresh_token(CommonDateModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    token = models.CharField(max_length=255, null=True, blank=True)
+    token = models.CharField(max_length=1024, null=True, blank=True)
     estimate = models.DateTimeField(auto_now_add=True, null=True, blank=True)
