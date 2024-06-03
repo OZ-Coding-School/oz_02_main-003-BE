@@ -68,6 +68,21 @@ class RecipeDetailDeleteView(APIView):
             recipe = Recipe.objects.get(pk=id)
             bookmarks_count = Bookmark.objects.filter(recipe_id=id).count()
             likes_count = Like.objects.filter(recipe_id=id).count()
+            
+            # 로그인한 사용자의 좋아요와 북마크 상태 가져오기
+            user_id = 1
+            like_status = Like.objects.filter(recipe_id=id, user_id=user_id).values_list('id', flat=True).first()
+            if like_status:
+                like_status = 1
+            else:
+                like_status = -1
+            
+            bookmark_status = Bookmark.objects.filter(recipe_id=id, user_id=user_id).values_list('id', flat=True).first()
+            if bookmark_status:
+                bookmark_status = 1
+            else:
+                bookmark_status = -1
+
             ingredients = Recipe_ingredient.objects.filter(recipe_id=id)
             steps = Recipe_step.objects.filter(recipe_id=id)
             # __ -> Comment 모델의 외래 키 User 모델의 id, nickname을 가져온다 
@@ -80,8 +95,10 @@ class RecipeDetailDeleteView(APIView):
                 "data": {
                     # ** -> dict의 키-쌍 값을 개별적으로 펼쳐서 사용 가능
                     **serializer.data,
-                    "bookmarks": bookmarks_count,
-                    "likes": likes_count,
+                    "like": likes_count,
+                    "like_status": like_status,
+                    "book": bookmarks_count,
+                    "book_status": bookmark_status,
                     "user": {
                         "id": recipe.user.id,
                         "nickname": recipe.user.nickname,
@@ -150,8 +167,11 @@ class RecipeCategoryListView(APIView):
             # 특정 카테고리의 레시피만 필터링
             recipes = Recipe.objects.filter(category=category_name)
         else:
-            # 모든 레시피 조회
-            recipes = Recipe.objects.all()
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "message": "유효한 카테고리가 아닙니다."
+            }, status=status.HTTP_404_NOT_FOUND)
+                    
 
         recipe_data = []
         for recipe in recipes:
@@ -166,7 +186,7 @@ class RecipeCategoryListView(APIView):
                 "id": recipe.id,
                 "user": user.name,
                 "title": recipe.title,
-                "image": recipe.image_1,
+                "main_image": recipe.main_image,
                 "like": Like.objects.filter(recipe_id=recipe.id).count(),
                 "like_status": like_status,
                 "book": Bookmark.objects.filter(recipe_id=recipe.id).count(),
@@ -176,7 +196,7 @@ class RecipeCategoryListView(APIView):
 
         response_data = {
             "status": 200,
-            "message": f"{category_name} 카테고리 레시피 조회 성공" if category_name else "레시피 조회 성공",
+            "message": f"{category_name} 카테고리 레시피 조회 성공" if category_name else "좋아요 및 북마크 레시피 조회 성공",
             "data": recipe_data
         }
 
@@ -210,7 +230,7 @@ class RecipeSearchKeywordView(APIView):
                 "id": recipe.id,
                 "user": user.name,
                 "title": recipe.title,
-                "image": recipe.image_1,
+                "main_image": recipe.main_image,
                 "like": Like.objects.filter(recipe_id=recipe.id).count(),
                 "like_status": like_status,
                 "book": Bookmark.objects.filter(recipe_id=recipe.id).count(),
@@ -218,4 +238,9 @@ class RecipeSearchKeywordView(APIView):
             }
             recipe_data.append(recipe_info)
 
-        return Response(recipe_data)
+        response_data = {
+            "status": 200,
+            "message": "레시피 조회 성공",
+            "data": recipe_data
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
