@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -180,9 +181,41 @@ class RecipeCategoryListView(APIView):
         }
 
         return Response(response_data)
-    
+
 class RecipeSearchKeywordView(APIView):
-
     def get(self, request, keyword):
-        return Response({"레시피 조회": keyword})
+        user_id = 1 
+        if not keyword:
+            return Response({"message": "검색어를 입력해 주세요."}, status=400)
 
+        recipes = Recipe.objects.filter(
+            Q(title__icontains=keyword) |
+            Q(recipe_ingredient__ingredient__name__icontains=keyword) |
+            Q(recipe_step__step__icontains=keyword)
+        ).distinct()
+
+        if not recipes:
+            return Response({"message": "해당되는 레시피가 없습니다."}, status=404)
+
+        recipe_data = []
+        for recipe in recipes:
+            user = User.objects.get(id=recipe.user_id)
+            like = Like.objects.filter(recipe_id=recipe.id, user_id=user_id).first()
+            book = Bookmark.objects.filter(recipe_id=recipe.id, user_id=user_id).first()
+
+            like_status = 1 if like else -1
+            book_status = 1 if book else -1
+
+            recipe_info = {
+                "id": recipe.id,
+                "user": user.name,
+                "title": recipe.title,
+                "image": recipe.image_1,
+                "like": Like.objects.filter(recipe_id=recipe.id).count(),
+                "like_status": like_status,
+                "book": Bookmark.objects.filter(recipe_id=recipe.id).count(),
+                "book_status": book_status
+            }
+            recipe_data.append(recipe_info)
+
+        return Response(recipe_data)
