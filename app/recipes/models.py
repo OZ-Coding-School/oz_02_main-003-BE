@@ -10,9 +10,6 @@ class Recipe(CommonDateModel):
     title = models.CharField(max_length=40, null=True, blank=True)
     category = models.CharField(max_length=20, null=True, blank=True)
     story = models.CharField(max_length=255, null=True, blank=True)
-    like_count = models.IntegerField(default=0, null=True, blank=True)
-    bookmark_count = models.IntegerField(default=0, null=True, blank=True)
-    comment_count = models.IntegerField(default=0, null=True, blank=True)
     image_1 = models.URLField()  # 필수 필드
     image_2 = models.URLField(null=True, default=None)  # 선택 필드
     image_3 = models.URLField(null=True, default=None)  # 선택 필드
