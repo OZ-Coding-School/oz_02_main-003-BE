@@ -1,6 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from django.shortcuts import redirect
+from common.data.envdata import GOOGLE_OAUTH2_CLIENT_ID, GOOGLE_OAUTH2_CLIENT_SECRET
+from django.contrib.auth import get_user_model
 
+from .services import google_get_access_token, google_get_user_info
+
+User = get_user_model()
 
 class KakaoLoginView(APIView):
     def post(self, request):
@@ -9,8 +15,53 @@ class KakaoLoginView(APIView):
 
 
 class GoogleLoginView(APIView):
-    def post(self, request):
-        return Response("google 로그인 시도")
+    def get(self, requests):
+        app_key = GOOGLE_OAUTH2_CLIENT_ID
+        scope = "https://www.googleapis.com/auth/userinfo.email " + \
+                "https://www.googleapis.com/auth/userinfo.profile"
+        redirect_uri = "http://127.0.0.1:8000/api/v1/users/auth/google/callback"
+        google_auth_api = "https://accounts.google.com/o/oauth2/v2/auth"
+        response = redirect(
+            f"{google_auth_api}?client_id={app_key}&response_type=code&redirect_uri={redirect_uri}&scope={scope}"
+        )
+        return response
+    
+class GoogleLoginCallbackView(APIView):
+    def get(self, request, *args, **kwargs):
+        code = request.GET.get('code')
+        google_token_api = "https://oauth2.googleapis.com/token"
+        
+        access_token = google_get_access_token(google_token_api, code)
+        user_data = google_get_user_info(access_token=access_token)
+        
+        """
+        "sub": "114379102616868503357",
+        114379102616868503357
+        "name": "윤준명",
+        "givenName": "준명",
+        "familyName": "윤",
+        "picture": "https://lh3.googleusercontent.com/a/ACg8ocJ3W3XHC9ts4R8Lo7PNNLQDeji-hp6trLn39ic2shznfcpGxw=s96-c",
+        "email": "wnsaud2233@gmail.com",
+        "emailVerified": true,
+        "locale": "ko"
+        """
+
+        profile_data = {
+            'username': user_data['email'],
+            'first_name': user_data.get('given_name', ''),
+            'last_name': user_data.get('family_name', ''),
+            'nickname': user_data.get('nickname', ''),
+            'name': user_data.get('name', ''),
+            'image': user_data.get('picture', None),
+            'social': "google",
+        }
+        # user, _ = social_user_get_or_create(**profile_data)
+
+        # response = redirect('https://naver.com')
+        # response = jwt_login(response=response, user=user)
+
+        # return response
+        return Response(user_data)
 
 
 class LoginView(APIView):

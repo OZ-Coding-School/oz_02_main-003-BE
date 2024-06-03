@@ -7,6 +7,7 @@ urlpatterns = [
     path("/auth/kakao", KakaoLoginView.as_view(), name="uesr-auth-kakao"),
     #/api/v1/users/auth/google
     path("/auth/google", GoogleLoginView.as_view(), name="user-auth-google"),
+    path("/auth/google/callback", GoogleLoginCallbackView.as_view(), name="user-auth-google-callback"),
     #/api/v1/users/auth/login
     path("/auth/login", LoginView.as_view(), name="user-login"),
     #/api/v1/users/auth/logout
