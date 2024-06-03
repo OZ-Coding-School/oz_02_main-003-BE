@@ -9,9 +9,7 @@ class Recipe(CommonDateModel):
     title = models.CharField(max_length=40, null=True, blank=True)
     category = models.CharField(max_length=20, null=True, blank=True)
     story = models.CharField(max_length=255, null=True, blank=True)
-    image_1 = models.URLField()  # 필수 필드
-    image_2 = models.URLField(null=True, default=None)  # 선택 필드
-    image_3 = models.URLField(null=True, default=None)  # 선택 필드
+    main_image = models.URLField()  # 필수 필드
 
     def __str__(self):
         return self.title
@@ -23,7 +21,9 @@ class Unit(CommonDateModel):
 
 
 class Recipe_ingredient(CommonDateModel):
-    recipe = models.ForeignKey(Recipe, related_name='recipe_ingredient',on_delete=models.CASCADE)
+    recipe = models.ForeignKey(
+        Recipe, related_name="recipe_ingredient", on_delete=models.CASCADE
+    )
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
     unit = models.ForeignKey(
         Unit, related_name="unit_recipe_ingredients", on_delete=models.CASCADE
@@ -33,7 +33,9 @@ class Recipe_ingredient(CommonDateModel):
 
 
 class Recipe_step(CommonDateModel):
-    recipe = models.ForeignKey(Recipe, related_name='recipe_step', on_delete=models.CASCADE)
+    recipe = models.ForeignKey(
+        Recipe, related_name="recipe_step", on_delete=models.CASCADE
+    )
 
     step = models.CharField(max_length=255, null=True, blank=True)
     image = models.URLField(null=True, default=None)

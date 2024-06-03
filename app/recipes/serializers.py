@@ -32,7 +32,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = ['title', 'image_1', 'image_2', 'image_3', 'category', 'recipe_ingredients', 'recipe_steps', 'story']
+        fields = ['title', 'main_image', 'category', 'recipe_ingredients', 'recipe_steps', 'story']
 
     def create(self, validated_data):
         # 외래 키로 사용할 User 객체를 하드코딩으로 가져옴
@@ -76,15 +76,13 @@ class RecipeSerializer(serializers.ModelSerializer):
 
         # Recipe 객체 업데이트
         instance.title = validated_data.get('title', instance.title)
-        instance.image_1 = validated_data.get('image_1', instance.image_1)
-        instance.image_2 = validated_data.get('image_2', instance.image_2)
-        instance.image_3 = validated_data.get('image_3', instance.image_3)
+        instance.main_image = validated_data.get('main_image', instance.main_image)
         instance.category = validated_data.get('category', instance.category)
         instance.story = validated_data.get('story', instance.story)
         instance.save()
 
         # Recipe_ingredient 객체 업데이트
-        instance.recipe_ingredient_set.all().delete()
+        instance.recipe_ingredient.all().delete()
         for ingredient_data in recipe_ingredients_data:
             ingredient, created = Ingredient.objects.get_or_create(
                 name=ingredient_data['name']
@@ -98,7 +96,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             )
 
         # Recipe_step 객체 업데이트
-        instance.recipe_step_set.all().delete()
+        instance.recipe_step.all().delete()
         for step_data in recipe_steps_data:
             Recipe_step.objects.create(
                 recipe=instance,
