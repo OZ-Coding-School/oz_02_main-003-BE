@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.db.models import Q
 
 from .models import Ingredient
 from likes.models import Like
@@ -42,9 +43,30 @@ class IngredientTypeView(APIView):
         return Response(response_data)
     
 class IngredientTypeSearchView(APIView):
-
     def get(self, request, type, search):
-        return Response({
-            "type": type,
-            "search": search,
-            })
+        if type == 'recipe':
+            # 레시피에 사용되는 재료 검색
+            ingredients = Ingredient.objects.filter(name__icontains=search, recipe_ingredient__isnull=False).distinct()
+        elif type == 'fridge':
+            # 사용자의 냉장고에 저장된 재료 검색
+            user_id = request.user.id
+            ingredients = Ingredient.objects.filter(name__icontains=search, fridge__user_id=user_id).distinct()
+        else:
+            return Response({"status": 400, "message": "잘못된 type입니다."}, status=400)
+
+        ingredient_data = [
+            {
+                "id": ingredient.id,
+                "name": ingredient.name,
+                "image": ingredient.image or ""  # image 필드가 None인 경우 빈 문자열로 처리
+            }
+            for ingredient in ingredients
+        ]
+
+        response_data = {
+            "status": 200,
+            "message": "조회 성공",
+            "data": ingredient_data
+        }
+
+        return Response(response_data)
