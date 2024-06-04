@@ -7,17 +7,64 @@ from rest_framework.exceptions import NotFound
 
 from .models import Recipe, Recipe_ingredient, Recipe_step
 from .serializers import RecipeSerializer
+from ingredients.models import Ingredient
 from bookmarks.models import Bookmark
 from likes.models import Like
 from comments.models import Comment
 from users.models import User
 
 class RecipeRecommendView(APIView):
-
     def post(self, request):
+        # 요청에서 사용자가 입력한 재료 ID 목록 가져오기
         data = request.data
-        return Response(data)
+        ingredient_ids = data.get("ingredients", [])
 
+        # 입력된 재료 ID로 실제 재료 객체 조회
+        ingredients = Ingredient.objects.filter(id__in=ingredient_ids)
+        # 조회된 재료 객체의 이름 목록 생성
+        ingredient_names = [ingredient.name for ingredient in ingredients]
+
+        # 입력된 재료를 포함하는 레시피 목록 조회
+        recipes = Recipe.objects.filter(recipe_ingredient__ingredient__in=ingredients).distinct()
+
+        # 레시피 정보를 담을 리스트 초기화
+        recipe_data = []
+        for recipe in recipes:
+            # 레시피 작성자 정보 가져오기
+            user = User.objects.get(id=recipe.user_id)
+            # 레시피 좋아요 수 가져오기
+            like = Like.objects.filter(recipe_id=recipe.id).count()
+            # 레시피 북마크 수 가져오기
+            book = Bookmark.objects.filter(recipe_id=recipe.id).count()
+
+            # 레시피에 포함된 재료 이름 목록 생성
+            recipe_ingredients = [item.ingredient.name for item in recipe.recipe_ingredient.all()]
+
+            # 입력된 재료 중 레시피에 포함된 재료와 포함되지 않은 재료 구분
+            include_ingredients = [name for name in ingredient_names if name in recipe_ingredients]
+            not_include_ingredients = [name for name in recipe_ingredients if name not in include_ingredients]
+
+            recipe_info = {
+                "nickname": user.nickname,
+                "include_ingredients": include_ingredients,
+                "not_include_ingredients": not_include_ingredients,
+                "title": recipe.title,
+                "likes": like,
+                "bookmark": book
+            }
+            recipe_data.append(recipe_info)
+
+        response_data = {
+            "status": 200,
+            "message": "조회 성공",
+            "data": {
+                "ingredients": ingredient_names,
+                "recipes": recipe_data
+            }
+        }
+
+        # 응답 반환
+        return Response(response_data)
 
 class CreateRecipe(APIView):
     def post(self, request):
