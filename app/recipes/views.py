@@ -152,7 +152,9 @@ class RecipeDetailDeleteView(APIView):
             steps = Recipe_step.objects.filter(recipe_id=id)
             # __ -> Comment 모델의 외래 키 User 모델의 id, nickname을 가져온다 
             # select_related -> 역참조 (User FK Comment)
-            comments = Comment.objects.filter(recipe_id=id).select_related('user').values('id', 'user__id', 'user__nickname', 'updated_at', 'comment')
+            comments = Comment.objects.filter(recipe_id=id).select_related('user').values(
+                'id', 'user__id', 'user__nickname', 'updated_at', 'comment', 'user__image'
+            )
             serializer = RecipeSerializer(recipe)
             data = {
                 "status": status.HTTP_200_OK,
@@ -184,7 +186,16 @@ class RecipeDetailDeleteView(APIView):
                             "image": step.image
                         } for step in steps
                     ],
-                    "comments": list(comments)
+                    "comments": [
+                        {
+                            'id': comment['id'],
+                            'user_id': comment['user__id'],
+                            'user_nickname': comment['user__nickname'],
+                            'profile_image': comment['user__image'],
+                            'updated_at': comment['updated_at'],
+                            'comment': comment['comment']
+                        } for comment in comments
+                    ]
                 }
             }
             return Response(data)
