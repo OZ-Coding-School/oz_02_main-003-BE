@@ -27,6 +27,9 @@ class RecipeRecommendView(APIView):
         # 입력된 재료를 포함하는 레시피 목록 조회
         recipes = Recipe.objects.filter(recipe_ingredient__ingredient__in=ingredients).distinct()
 
+        # 사용자 ID 가져오기
+        user_id = 1
+
         # 레시피 정보를 담을 리스트 초기화
         recipe_data = []
         for recipe in recipes:
@@ -35,7 +38,20 @@ class RecipeRecommendView(APIView):
             # 레시피 좋아요 수 가져오기
             like = Like.objects.filter(recipe_id=recipe.id).count()
             # 레시피 북마크 수 가져오기
-            book = Bookmark.objects.filter(recipe_id=recipe.id).count()
+            bookmark = Bookmark.objects.filter(recipe_id=recipe.id).count()
+
+            # 사용자의 좋아요 및 북마크 상태 확인
+            like_status = Like.objects.filter(recipe_id=recipe.id, user_id=user_id).values_list('id', flat=True).first()
+            if like_status:
+                like_status = 1
+            else:
+                like_status = -1
+
+            bookmark_status = Bookmark.objects.filter(recipe_id=recipe.id, user_id=user_id).values_list('id', flat=True).first()
+            if bookmark_status:
+                bookmark_status = 1
+            else:
+                bookmark_status = -1
 
             # 레시피에 포함된 재료 이름 목록 생성
             recipe_ingredients = [item.ingredient.name for item in recipe.recipe_ingredient.all()]
@@ -50,7 +66,9 @@ class RecipeRecommendView(APIView):
                 "not_include_ingredients": not_include_ingredients,
                 "title": recipe.title,
                 "likes": like,
-                "bookmark": book
+                "bookmark": bookmark,
+                "like_status": like_status,
+                "bookmark_status": bookmark_status
             }
             recipe_data.append(recipe_info)
 
@@ -149,6 +167,7 @@ class RecipeDetailDeleteView(APIView):
                     "user": {
                         "id": recipe.user.id,
                         "nickname": recipe.user.nickname,
+                        "profile_image": recipe.user.image,
                         "date": recipe.updated_at
                     },
                     "ingredients": [
@@ -231,7 +250,7 @@ class RecipeCategoryListView(APIView):
 
             recipe_info = {
                 "id": recipe.id,
-                "user": user.name,
+                "user": user.nickname,
                 "title": recipe.title,
                 "main_image": recipe.main_image,
                 "like": Like.objects.filter(recipe_id=recipe.id).count(),
@@ -275,7 +294,7 @@ class RecipeSearchKeywordView(APIView):
 
             recipe_info = {
                 "id": recipe.id,
-                "user": user.name,
+                "user": user.nickname,
                 "title": recipe.title,
                 "main_image": recipe.main_image,
                 "like": Like.objects.filter(recipe_id=recipe.id).count(),
