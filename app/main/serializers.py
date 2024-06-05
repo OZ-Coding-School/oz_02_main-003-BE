@@ -1,14 +1,16 @@
 # serializers.py
-from rest_framework import serializers
 from recipes.models import Recipe
+from rest_framework import serializers
 
 class RecipeSerializer(serializers.ModelSerializer):
-    likes_count = serializers.SerializerMethodField()
-    bookmarks_count = serializers.SerializerMethodField()
+    likes_count = serializers.IntegerField(read_only=True)
+    bookmarks_count = serializers.IntegerField(read_only=True)
+    like_status = serializers.IntegerField(read_only=True)
+    recipe_id = serializers.IntegerField(source='id', read_only=True)
 
     class Meta:
         model = Recipe
-        fields = ['user', 'title', 'main_image', 'likes_count', 'bookmarks_count']
+        fields = ['recipe_id', 'user', 'title', 'main_image', 'likes_count', 'bookmarks_count', 'like_status']
 
     def get_likes_count(self, obj):
         return obj.like_set.count()

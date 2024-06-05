@@ -32,29 +32,34 @@ class UserAlertsView(APIView):
 
 class UnreadUserAlertsView(APIView):
     def get(self, request):
-        # 사용자 인증 확인
-        # if not user.is_authenticated:
-        #     return Response({'status': 403, 'message': '인증되지 않은 사용자입니다.'}, status=403)
-        user_id = 1  # 테스트 목적으로 사용자 ID를 1로 설정
+        user_id = 3 # 테스트 목적으로 사용자 ID를 1로 설정
 
-        # 가장 최근에 생성된 알람 가져오기
-        alert_exists = Alert.objects.filter(user_id=user_id, status=1).exists()
+        # 사용자에게 온 모든 읽지 않은 알림 가져오기
+        unread_alerts = Alert.objects.filter(user_id=user_id, status=1)
 
-        if alert_exists:
-            # status가 1인 알람이 존재하면, 성공 메시지와 함께 그 정보를 반환
+        if unread_alerts:
+            # 사용자에게 온 모든 읽지 않은 알림을 시리얼라이즈하여 반환
+            serializer = AlertSerializer(unread_alerts, many=True)
+            # status가 True인 레시피의 id와 status 필드를 선택하여 반환
+            unread_alerts_data = [
+                {"recipe_id": item["recipe_id"], "status": item["status"]} 
+                for item in serializer.data
+                if item["status"] == True
+            ]
             return Response(
                 {
                     "status": 200,
-                    "message": "읽지 않은 알림 존재 존재합니다.",
+                    "message": "읽지 않은 알림이 존재합니다.",
+                    "data": unread_alerts_data
                 },
                 status=200,
             )
         else:
-            # status가 1인 알람이 없으면, 알림 메시지를 반환
+            # 읽지 않은 알림이 없으면, 알림이 존재하지 않음을 반환
             return Response(
                 {
                     "status": 404,
-                    "message": "알람이 존재하지 않습니다.",
+                    "message": "읽지 않은 알림이 존재하지 않습니다."
                 },
                 status=404,
             )
