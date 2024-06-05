@@ -10,4 +10,4 @@ class AlertSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Alert
-        fields = ['nickname', 'title', 'type', 'status', 'created_at']
+        fields = ['recipe_id','nickname', 'title', 'type', 'status', 'created_at']
