@@ -2,6 +2,7 @@ from django.db import models
 from common.models import CommonDateModel
 from users.models import User
 from ingredients.models import Ingredient
+from .utils import upload_image
 
 
 class Recipe(CommonDateModel):
@@ -17,7 +18,7 @@ class Recipe(CommonDateModel):
     title = models.CharField(max_length=40, null=True, blank=True)
     category = models.PositiveIntegerField(choices=CHOICES, default=5)
     story = models.CharField(max_length=255, null=True, blank=True)
-    main_image = models.URLField()  # 필수 필드
+    main_image = models.ImageField(upload_to=upload_image, null=True)  # 필수 필드
 
     def __str__(self):
         return self.title
@@ -46,4 +47,4 @@ class Recipe_step(CommonDateModel):
     )
 
     step = models.CharField(max_length=255, null=True, blank=True)
-    image = models.URLField(null=True, default=None)
+    image = models.CharField(max_length=255, null=True, default=None)

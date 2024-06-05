@@ -26,13 +26,15 @@ class Recipe_stepSerializer(serializers.ModelSerializer):
         model = Recipe_step
         fields = ['id', 'step', 'image']
 
+import json
+
 class RecipeSerializer(serializers.ModelSerializer):
     recipe_ingredients = Recipe_ingredientSerializer(many=True, read_only=True)
-    recipe_steps = Recipe_stepSerializer(many=True, read_only=True)
+    steps = Recipe_stepSerializer(many=True, read_only=True)
 
     class Meta:
         model = Recipe
-        fields = ['title', 'main_image', 'category', 'recipe_ingredients', 'recipe_steps', 'story']
+        fields = ['title', 'main_image', 'category', 'recipe_ingredients', 'steps', 'story']
 
     def create(self, validated_data):
         # 외래 키로 사용할 User 객체를 하드코딩으로 가져옴
@@ -40,11 +42,15 @@ class RecipeSerializer(serializers.ModelSerializer):
 
         # recipe_ingredients와 steps 데이터는 request 데이터에서 직접 가져옴
         # 'recipe_ingredients'와 'steps' 데이터 추출
-        recipe_ingredients_data = self.initial_data.get('recipe_ingredients')
-        recipe_steps_data = self.initial_data.get('steps')
+        recipe_ingredients_data = json.loads(self.initial_data['recipe_ingredients'])
+        recipe_steps_data = json.loads(self.initial_data['steps'])
 
         # Recipe 객체 생성 시 user 필드를 포함하여 생성
+        image_name = validated_data.pop("main_image")
         recipe = Recipe.objects.create(user=user, **validated_data)
+        recipe.main_image = image_name
+        recipe.save()
+        
 
         for ingredient_data in recipe_ingredients_data:
             ingredient, created = Ingredient.objects.get_or_create(name=ingredient_data['name'])

@@ -276,29 +276,36 @@ class RecipeDetailDeleteView(APIView):
 
 
 class RecipeCategoryListView(APIView):
-
-    def get_category_id(self, category_name):
+    def get_category_name(self, category):
         category_mapping = {
-            "daily": 1,
-            "healthy": 2,
-            "desert": 3,
-            "midnight_snack": 4,
-            "none": 5,
+            "daily": "일상요리",
+            "healthy": "건강식",
+            "midnight": "야식",
+            "desert": "디저트",
         }
-        return category_mapping.get(category_name, None)
+        return category_mapping.get(category, None)
 
     def get(self, request, category=None):
         user_id = 1  # 현재 사용자의 ID 가져오기
+        category_name = self.get_category_name(category)
 
-        if category in ["daily", "healthy", "desert", "midnight_snack", "none"]:
-            category_id = self.get_category_id(category)
-            recipes = Recipe.objects.filter(category=category_id).order_by('id')
-        elif category == "like":
-            recipes = Recipe.objects.filter(like__user_id=user_id).order_by('id')
+        if category == "like":
+            # 사용자가 좋아요를 누른 레시피만 필터링
+            recipes = Recipe.objects.filter(like__user_id=user_id)
         elif category == "book":
-            recipes = Recipe.objects.filter(bookmark__user_id=user_id).order_by('id')
+            # 사용자가 북마크한 레시피만 필터링
+            recipes = Recipe.objects.filter(bookmark__user_id=user_id)
+        elif category_name:
+            # 특정 카테고리의 레시피만 필터링
+            recipes = Recipe.objects.filter(category=category_name)
         else:
-            recipes = Recipe.objects.all().order_by('id')
+            return Response(
+                {
+                    "status": status.HTTP_404_NOT_FOUND,
+                    "message": "유효한 카테고리가 아닙니다.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         recipe_data = []
         for recipe in recipes:
@@ -321,18 +328,18 @@ class RecipeCategoryListView(APIView):
             }
             recipe_data.append(recipe_info)
 
-        if category in ["daily", "healthy", "desert", "midnight_snack", "none"]:
-            message = f"{category} 카테고리 레시피 조회 성공"
-        else:
-            message = "좋아요 및 북마크 레시피 조회 성공"
-
         response_data = {
             "status": 200,
-            "message": message,
+            "message": (
+                f"{category_name} 카테고리 레시피 조회 성공"
+                if category_name
+                else "좋아요 및 북마크 레시피 조회 성공"
+            ),
             "data": recipe_data,
         }
 
         return Response(response_data)
+
 
 class RecipeSearchKeywordView(APIView):
     def get(self, request, keyword):
