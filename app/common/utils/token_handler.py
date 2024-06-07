@@ -39,7 +39,7 @@ class TokenManager:
     def get_new_access_token(cls, user_id):
         user = User.objects.get(id=user_id)
         try:
-            refresh_token = User_refresh_token.objects.get(id=user_id).token
+            refresh_token = User_refresh_token.objects.get(user=user_id).token
             return RefreshToken(refresh_token).access_token
         except User_refresh_token.DoesNotExist:
             raise CustomException("Refresh Token이 없습니다. 다시 로그인해주세요", 400, -498)

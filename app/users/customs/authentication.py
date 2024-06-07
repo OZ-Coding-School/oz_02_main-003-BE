@@ -24,7 +24,6 @@ class CustomCookieAuthentication(BaseAuthentication):
 
         # 토큰이 없을 경우 로그인 과정 진행
         if not access_token:
-            print('hi')
             return (None, None)
         
         try:

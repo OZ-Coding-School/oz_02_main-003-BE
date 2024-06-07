@@ -11,6 +11,9 @@ from users.models import User_refresh_token
 User = get_user_model()
 
 from users.customs.authentication import CustomCookieAuthentication
+from common.data.envdata import ACCESS_TOKEN_COOKIE_NAME
+
+
 class LoginView(APIView):
     # authentication_classes = [CustomCookieAuthentication]
     def get(self, request):
@@ -27,7 +30,7 @@ class LoginView(APIView):
         # 소셜 로그인이 아니라면 토큰 로그인 진행
         authenticator = CustomCookieAuthentication()
         user, token = authenticator.authenticate(request)
-        if user :
+        if user:
             return Response({"status": 200, "message": "로그인 성공"})
         return Response({"status": 400, "message": "토큰이 없습니다."})
 
@@ -60,8 +63,23 @@ class LoginCallbackView(APIView):
 
 
 class LogoutView(APIView):
+    authentication_classes = [CustomCookieAuthentication]
+
     def post(self, request):
-        return Response("유저 토큰 삭제")
+        user = request.user
+        if not user:
+            return Response({"status": "400", "message": "토큰이 없습니다"}, 400)
+
+        refresh_token_obj = User_refresh_token.objects.get(user=user)
+        refresh_token_obj.delete()
+
+        user.is_login = False
+        user.save()
+
+        response = Response({"status": "200", "meesage": "로그아웃 성공"})
+        response.delete_cookie(ACCESS_TOKEN_COOKIE_NAME)
+
+        return response
 
 
 class UserView(APIView):
