@@ -10,8 +10,9 @@ from users.models import User_refresh_token
 
 User = get_user_model()
 
-
+from users.customs.authentication import CustomCookieAuthentication
 class LoginView(APIView):
+    # authentication_classes = [CustomCookieAuthentication]
     def get(self, request):
         social_types = ("kakao", "google")
 
@@ -23,43 +24,12 @@ class LoginView(APIView):
         if social_type in social_types:
             return SocialLoginServices.get_social_login_redirect_object(social_type)
 
-        # 토큰 존재하면 토큰 사용 로그인
-        token = request.COOKIES.get("ndd_access", None)
-        if token:
-            # 액세스 토큰은 유효기간이 짧아 기간이 지났을 거니까 valid 통과 불가
-            # 토큰을 분해해서 유저 id 가져오기
-            # 유저 id를 통해 refresh 토큰있나 확인
-
-            from rest_framework_simplejwt.tokens import RefreshToken
-            from rest_framework_simplejwt.tokens import AccessToken
-            import jwt
-
-            try:
-                user_id = jwt.decode(token, options={"verify_signature": False})[
-                    "user_id"
-                ]
-            except:
-                response = Response(
-                    {"status": 401, "message": "유효하지 않은 토큰입니다"}, status=401
-                )
-                response.delete_cookie("ndd_access")
-                return response
-
-            try:
-                refresh_token = User_refresh_token.objects.get(id=user_id).token
-                refresh = RefreshToken(refresh_token)
-            except User_refresh_token.DoesNotExist:
-                response = Response(
-                    {"status": 401, "message": "다시 로그인 해주시기 바랍니다"},
-                    status=401,
-                )
-                response.delete_cookie("ndd_access")
-                return response
-
-            return Response({"ndd_access": token})
-
-        else:
-            return Response({"status": 400, "message": "토큰이 없습니다."}, 400)
+        # 소셜 로그인이 아니라면 토큰 로그인 진행
+        authenticator = CustomCookieAuthentication()
+        user, token = authenticator.authenticate(request)
+        if user :
+            return Response({"status": 200, "message": "로그인 성공"})
+        return Response({"status": 400, "message": "토큰이 없습니다."})
 
 
 class LoginCallbackView(APIView):
@@ -83,6 +53,7 @@ class LoginCallbackView(APIView):
         response.set_cookie("ndd_access", access_token, httponly=True)
 
         user.last_login = timezone.now()
+        user.is_login = True
         user.save()
 
         return response

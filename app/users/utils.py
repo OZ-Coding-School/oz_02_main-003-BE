@@ -1,6 +1,8 @@
-from users.models import User, User_refresh_token
+from users.models import User_refresh_token
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 
 def get_or_create_social_user(type, id, image=None):
     social_id = f"{type}_{id}"
