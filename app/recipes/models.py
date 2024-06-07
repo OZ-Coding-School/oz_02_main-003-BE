@@ -5,9 +5,17 @@ from ingredients.models import Ingredient
 
 
 class Recipe(CommonDateModel):
+    CHOICES = [
+        (1, "daily"),
+        (2, "healthy"),
+        (3, "desert"),
+        (4, "midnight_snack"),
+        (5, "none"),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=40, null=True, blank=True)
-    category = models.CharField(max_length=20, null=True, blank=True)
+    category = models.PositiveIntegerField(choices=CHOICES, default=5)
     story = models.CharField(max_length=255, null=True, blank=True)
     main_image = models.URLField()  # 필수 필드
 
