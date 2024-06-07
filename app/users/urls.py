@@ -2,15 +2,16 @@ from django.urls import path
 from .views import *
 
 urlpatterns = [
-    ### 로그인 ###
-    #/api/v1/users/auth/kakao
-    path("/auth/kakao", KakaoLoginView.as_view(), name="uesr-auth-kakao"),
-    path("/auth/kakao/callback", KakaoLoginCallbackView.as_view(), name="uesr-auth-kakao-callback"),
-    #/api/v1/users/auth/google
-    path("/auth/google", GoogleLoginView.as_view(), name="user-auth-google"),
-    path("/auth/google/callback", GoogleLoginCallbackView.as_view(), name="user-auth-google-callback"),
+    # ### 로그인 ###
     #/api/v1/users/auth/login
+    #/api/v1/users/auth/login?social=kakao
+    #/api/v1/users/auth/login?social=google
     path("/auth/login", LoginView.as_view(), name="user-login"),
+
+    #/api/v1/users/auth/login/kakao
+    #/api/v1/users/auth/login/google
+    path("/auth/login/callback/<str:social>", LoginCallbackView.as_view(), name="user-login-callback"),
+    
     #/api/v1/users/auth/logout
     path("/auth/logout", LogoutView.as_view(), name="user-logout"),
 

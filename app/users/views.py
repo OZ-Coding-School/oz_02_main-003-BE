@@ -1,132 +1,85 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.shortcuts import redirect
-from common.data.envdata import GOOGLE_OAUTH2_CLIENT_ID, KAKAO_OAUTH2_CLIENT_ID
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from .services import (
-    kakao_get_access_token,
-    kakao_get_user_info,
-    google_get_access_token,
-    google_get_user_info,
-)
+from .services import SocialLoginServices, SocialLoginCallbackServices
+
+
+from users.models import User_refresh_token
 
 User = get_user_model()
 
-from users.utils import get_or_create_social_user, TokenCreator
-from users.models import User_refresh_token
+from users.customs.authentication import CustomCookieAuthentication
+from common.data.envdata import ACCESS_TOKEN_COOKIE_NAME
 
 
-class KakaoLoginView(APIView):
+class LoginView(APIView):
+    # authentication_classes = [CustomCookieAuthentication]
     def get(self, request):
-        client_id = KAKAO_OAUTH2_CLIENT_ID
-        redirect_uri = "http://127.0.0.1:8000/api/v1/users/auth/kakao/callback"
-        kakao_auth_api = "https://kauth.kakao.com/oauth/authorize"
-        response = redirect(
-            f"{kakao_auth_api}?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code"
-        )
-        return response
+        social_types = ("kakao", "google")
+
+        # 소셜로그인인지 확인
+        social_type = request.GET.get("social", None)
+
+        if social_type is not None and social_type not in social_types:
+            return Response({"status": 400, "message": "잘못된 소셜 타입"}, status=400)
+        if social_type in social_types:
+            return SocialLoginServices.get_social_login_redirect_object(social_type)
+
+        # 소셜 로그인이 아니라면 토큰 로그인 진행
+        authenticator = CustomCookieAuthentication()
+        user, token = authenticator.authenticate(request)
+        if user:
+            return Response({"status": 200, "message": "로그인 성공"})
+        return Response({"status": 400, "message": "토큰이 없습니다."})
 
 
-class KakaoLoginCallbackView(APIView):
-    def get(self, request):
+class LoginCallbackView(APIView):
+    def get(self, request, social):
         data = request.query_params.copy()
 
-        # access_token 발급 요청
         code = data.get("code")
         if not code:
             return Response(status=400)
 
-        access_token = kakao_get_access_token(code)
-        user_info = kakao_get_user_info(access_token=access_token)
-        user = get_or_create_social_user(
-            type="kakao",
-            id=user_info["id"],
-            image=user_info["properties"]["thumbnail_image"],
-        )
-        refresh_token = TokenCreator.create_token_by_data(
-            user_id=user.id,
-            claims={"is_staff": user.is_staff, "social_id": user.social_id},
-        )
-        refresh_token_data = {
-            "user": user,
-            "token": str(refresh_token),
-            "estimate": timezone.now() + refresh_token.lifetime,
-        }
-        User_refresh_token.objects.update_or_create(
-            defaults=refresh_token_data, **{"user": user}
-        )
+        slcs = SocialLoginCallbackServices(social)
+
+        # social_token 발급 요청
+        social_token = slcs.get_social_token(code)
+        # social_token 을 통해 user 객체 가져오기(or 생성)
+        user = slcs.get_user(social_token)
+        # 가져온 user 객체를 통해 access_token 생성
+        access_token = slcs.get_access_token(user)
 
         response = Response({"status": 200, "message": "로그인 성공"})
-        response.set_cookie("access", str(refresh_token.access_token), httponly=True)
+        response.set_cookie("ndd_access", access_token, httponly=True)
 
         user.last_login = timezone.now()
+        user.is_login = True
         user.save()
 
         return response
-
-
-class GoogleLoginView(APIView):
-    def get(self, requests):
-        app_key = GOOGLE_OAUTH2_CLIENT_ID
-        scope = (
-            "https://www.googleapis.com/auth/userinfo.email "
-            + "https://www.googleapis.com/auth/userinfo.profile"
-        )
-        redirect_uri = "http://127.0.0.1:8000/api/v1/users/auth/google/callback"
-        google_auth_api = "https://accounts.google.com/o/oauth2/v2/auth"
-        response = redirect(
-            f"{google_auth_api}?client_id={app_key}&response_type=code&redirect_uri={redirect_uri}&scope={scope}"
-        )
-        return response
-
-
-class GoogleLoginCallbackView(APIView):
-    def get(self, request, *args, **kwargs):
-        code = request.GET.get("code")
-        google_token_api = "https://oauth2.googleapis.com/token"
-
-        access_token = google_get_access_token(google_token_api, code)
-        user_info = google_get_user_info(access_token=access_token)
-        user = get_or_create_social_user(
-            type="google",
-            id=user_info["sub"],
-            image=user_info["picture"],
-        )
-
-        refresh_token = TokenCreator.create_token_by_data(
-            user_id=user.id,
-            claims={"is_staff": user.is_staff, "social_id": user.social_id},
-        )
-
-        refresh_token_data = {
-            "user": user,
-            "token": str(refresh_token),
-            "estimate": timezone.now() + refresh_token.lifetime,
-        }
-
-        User_refresh_token.objects.update_or_create(
-            defaults=refresh_token_data, **{"user": user}
-        )
-
-        response = Response({"status": 200, "message": "로그인 성공"})
-        response.set_cookie("access", str(refresh_token.access_token), httponly=True)
-
-        user.last_login = timezone.now()
-        user.save()
-
-        return response
-
-
-class LoginView(APIView):
-    def post(self, request):
-        return Response("Login 완료")
 
 
 class LogoutView(APIView):
+    authentication_classes = [CustomCookieAuthentication]
+
     def post(self, request):
-        return Response("유저 토큰 삭제")
+        user = request.user
+        if not user:
+            return Response({"status": "400", "message": "토큰이 없습니다"}, 400)
+
+        refresh_token_obj = User_refresh_token.objects.get(user=user)
+        refresh_token_obj.delete()
+
+        user.is_login = False
+        user.save()
+
+        response = Response({"status": "200", "meesage": "로그아웃 성공"})
+        response.delete_cookie(ACCESS_TOKEN_COOKIE_NAME)
+
+        return response
 
 
 class UserView(APIView):

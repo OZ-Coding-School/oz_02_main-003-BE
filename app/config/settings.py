@@ -199,9 +199,11 @@ REST_FRAMEWORK = {
     #     "rest_framework_simplejwt.authentication.JWTAuthentication",
     # ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "EXCEPTION_HANDLER": "users.customs.exception_handler.custom_exception_handler",
 }
 
 from datetime import timedelta
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
