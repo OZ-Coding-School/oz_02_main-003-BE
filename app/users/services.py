@@ -20,13 +20,13 @@ class SocialLoginServices:
     """
 
     @classmethod
-    def get_social_login_redirect_object(cls, type):
+    def get_social_login_redirect_object(cls, type, dev):
         app_key = OAUTH2_CLIENT_ID[type]
         OAUTH2_API = {
             "kakao": "https://kauth.kakao.com/oauth/authorize",
             "google": "https://accounts.google.com/o/oauth2/v2/auth",
         }
-        callback_uri = f"{HOST}/api/v1/users/auth/login/callback/{type}"
+        callback_uri = f"{HOST}/api/v1/users/auth/login/callback/{type}/{dev if dev else 0}"
         redirect_uri = f"{OAUTH2_API[type]}?client_id={app_key}&response_type=code&redirect_uri={callback_uri}"
         if type == "google":
             scope = (
@@ -48,8 +48,9 @@ class SocialLoginCallbackServices:
 
     CALLBACK_URI = f"{HOST}/api/v1/users/auth/login/callback"
 
-    def __init__(self, type):
+    def __init__(self, type, dev):
         self.type = type
+        self.dev = dev
 
     def get_social_token(self, code):
         """
@@ -66,7 +67,7 @@ class SocialLoginCallbackServices:
         params = {
             "grant_type": "authorization_code",
             "client_id": OAUTH2_CLIENT_ID[self.type],
-            "redirect_uri": f"{self.CALLBACK_URI}/{self.type}",
+            "redirect_uri": f"{self.CALLBACK_URI}/{self.type}/{self.dev}",
             "client_secret": OAUTH2_CLIENT_SECRET[self.type],
             "code": code,
         }

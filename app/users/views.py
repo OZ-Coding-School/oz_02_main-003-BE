@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.shortcuts import redirect
 from rest_framework import status
 
 from .services import SocialLoginServices, SocialLoginCallbackServices
@@ -29,7 +30,8 @@ class LoginView(APIView):
         if social_type is not None and social_type not in social_types:
             return Response({"status": 400, "message": "잘못된 소셜 타입"}, status=400)
         if social_type in social_types:
-            return SocialLoginServices.get_social_login_redirect_object(social_type)
+            dev = request.GET.get("dev", 0)
+            return SocialLoginServices.get_social_login_redirect_object(social_type, dev)
 
         # 소셜 로그인이 아니라면 토큰 로그인 진행
         authenticator = CustomCookieAuthentication()
@@ -40,14 +42,14 @@ class LoginView(APIView):
 
 
 class LoginCallbackView(APIView):
-    def get(self, request, social):
+    def get(self, request, social, dev):
         data = request.query_params.copy()
 
         code = data.get("code")
         if not code:
             return Response(status=400)
 
-        slcs = SocialLoginCallbackServices(social)
+        slcs = SocialLoginCallbackServices(social, dev)
 
         # social_token 발급 요청
         social_token = slcs.get_social_token(code)
@@ -57,6 +59,8 @@ class LoginCallbackView(APIView):
         access_token = slcs.get_access_token(user)
 
         response = Response({"status": 200, "message": "로그인 성공"})
+        redirect_uri = ["https://ndd-project.vercel.app/", "http://localhost:5173"]
+        response = redirect(redirect_uri[dev])
         response.set_cookie("ndd_access", access_token, httponly=True)
 
         user.last_login = timezone.now()
