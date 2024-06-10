@@ -11,7 +11,12 @@ User = get_user_model()
 
 class FridgeView(APIView):
     def get(self, request, user_id):
-        user = get_object_or_404(User, pk=user_id)
+        user = request.user
+        if not user.is_authenticated:
+            return Response(
+                {"status": 404, "message": "로그인 된 유저가 아닙니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         fridge_items = Fridge.objects.filter(user=user)
         ingredients = [
@@ -35,8 +40,13 @@ class FridgeView(APIView):
 class FridgeIngredientAddView(APIView):
 
     def post(self, request):
-        user_id =1
-        user = get_object_or_404(User, pk=user_id)
+        user = request.user
+        if not user.is_authenticated:
+            return Response(
+                {"status": 404, "message": "로그인 된 유저가 아닙니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         data = request.data
 
         for item in data:
@@ -63,5 +73,6 @@ class FridgeIngredientAddView(APIView):
                 )
 
         return Response(
-            {"status": 201, "message": "재료 추가, 삭제 성공"}, status=status.HTTP_201_CREATED
+            {"status": 201, "message": "재료 추가, 삭제 성공"},
+            status=status.HTTP_201_CREATED,
         )
