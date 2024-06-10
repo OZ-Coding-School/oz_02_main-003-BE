@@ -41,7 +41,6 @@ class RecipeSerializer(serializers.ModelSerializer):
 
         # recipe_ingredients와 steps 데이터는 validated_data에서 직접 가져옴
         recipe_ingredients_data = validated_data.pop('recipe_ingredients', [])
-        recipe_steps_data = validated_data.pop('steps', [])
 
         # Recipe 객체 생성 시 user 필드를 포함하여 생성
         recipe = Recipe.objects.create(user=user, **validated_data)
@@ -55,12 +54,6 @@ class RecipeSerializer(serializers.ModelSerializer):
                 ingredient=ingredient,
                 unit=unit,
                 quantity=ingredient_data['quantity']
-            )
-
-        for step_text in recipe_steps_data:
-            Recipe_step.objects.create(
-                recipe=recipe,
-                step=step_text
             )
 
         return recipe

@@ -192,41 +192,42 @@ class CreateRecipe(APIView):
                         File(temp_recipe.main_image)
                     )
 
+                temp_steps = Temp_step.objects.filter(recipe=temp_recipe).order_by('order')
+                steps_data = data.get('steps', [])
 
-                if serializer.is_valid():
-                    recipe = serializer.save()
+                count = 0
 
+                for i, step_text in enumerate(steps_data, 1):
+                    temp_image = None
+                    step_data = {'recipe': recipe.id, 'step': step_text, 'image': temp_image}
+                    step_serializer = Recipe_stepSerializer(data=step_data)
+                    if temp_steps and count < len(temp_steps):
+                        if i == temp_steps[count].order:
+                            temp_image = temp_steps[count].image
+                            count += 1
 
-                    temp_steps = Temp_step.objects.filter(recipe=temp_recipe).order_by('order')
-                    steps_data = data.get('steps', [])
-                    for temp_step, step_data in zip(temp_steps, steps_data):
-                        step_data = {'recipe': recipe.id, 'step': step_data}
-                        step_serializer = Recipe_stepSerializer(data=step_data)
-                        if step_serializer.is_valid():
-                            recipe_step = step_serializer.save()
-                            if temp_step.image:
-                                
-                                recipe_step.image.save(
-                                    os.path.basename(temp_step.image.name),
-                                    File(temp_step.image)
-                                )
+                    if step_serializer.is_valid():
+                        recipe_step = step_serializer.save()
+                        if temp_image:
+                            recipe_step.image.save(
+                            os.path.basename(temp_image.name),
+                            File(temp_image)
+                            )
+                    else:
+                        print("Errors:", step_serializer.errors)
 
-                    temp_recipe.status = 0
-                    temp_recipe.save()
+                # temp_recipe.status = 0
+                # temp_recipe.save()
 
-                    response_data = {
-                        "status": 201,
-                        "message": "레시피 작성 성공",
-                        "data": {"id": recipe.id},
-                    }
-                    return Response(response_data, status=status.HTTP_201_CREATED)
+                response_data = {
+                    "status": 201,
+                    "message": "레시피 작성 성공",
+                    "data": {"id": recipe.id},
+                }
+                return Response(response_data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response({"detail": "유효한 temp_recipe를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
-
-
-
-
 
     def put(self, request, *args, **kwargs):
         recipe_id = request.data.get("id")
@@ -337,6 +338,9 @@ class RecipeDetailDeleteView(APIView):
                 )
 
             serializer = RecipeSerializer(recipe)
+            print([
+                        {"step": step.step, "image": step.image} for step in steps
+                    ],)
             data = {
                 "status": status.HTTP_200_OK,
                 "message": "레시피 조회 성공",
@@ -353,6 +357,7 @@ class RecipeDetailDeleteView(APIView):
                         "profile_image": recipe.user.image,
                         "date": recipe.updated_at,
                     },
+                    
                     "ingredients": [
                         {
                             "id": ingredient.id,
@@ -499,3 +504,4 @@ class RecipeSearchKeywordView(APIView):
             "data": recipe_data,
         }
         return Response(response_data, status=status.HTTP_200_OK)
+
