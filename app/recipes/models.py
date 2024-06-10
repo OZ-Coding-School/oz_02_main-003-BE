@@ -2,7 +2,7 @@ from django.db import models
 from common.models import CommonDateModel
 from users.models import User
 from ingredients.models import Ingredient
-from .utils import upload_image, temp_upload_image
+from .utils import upload_image, temp_upload_image, upload_image_step
 
 
 class Recipe(CommonDateModel):
@@ -48,7 +48,7 @@ class Recipe_step(CommonDateModel):
 
     step = models.CharField(max_length=255, null=True, blank=True)
     order = models.PositiveIntegerField(null=True)
-    image = models.ImageField(upload_to=upload_image, null=True)
+    image = models.ImageField(upload_to=upload_image_step, null=True)
 
 class Temp_recipe(CommonDateModel):
     CHOICES = [

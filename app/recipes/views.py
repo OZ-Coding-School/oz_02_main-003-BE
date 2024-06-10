@@ -200,11 +200,12 @@ class CreateRecipe(APIView):
                     temp_steps = Temp_step.objects.filter(recipe=temp_recipe).order_by('order')
                     steps_data = data.get('steps', [])
                     for temp_step, step_data in zip(temp_steps, steps_data):
-                        step_data = {'recipe': recipe.id, 'step': step_data.step}
+                        step_data = {'recipe': recipe.id, 'step': step_data}
                         step_serializer = Recipe_stepSerializer(data=step_data)
                         if step_serializer.is_valid():
                             recipe_step = step_serializer.save()
                             if temp_step.image:
+                                
                                 recipe_step.image.save(
                                     os.path.basename(temp_step.image.name),
                                     File(temp_step.image)
