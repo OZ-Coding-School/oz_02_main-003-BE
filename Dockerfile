@@ -12,6 +12,7 @@ WORKDIR /ndd
 RUN pip3 install poetry
 RUN poetry config virtualenvs.create false
 RUN poetry install
+RUN poetry add gunicorn
 
 # 애플리케이션 코드 복사
 # COPY ./app /ndd/app
@@ -24,8 +25,6 @@ WORKDIR /ndd/app
 # RUN mkdir -p /ndd && chmod -R 755 /ndd
 
 # Gunicorn을 사용하여 애플리케이션 실행
-# CMD ["gunicorn", "-c", "./gunicorn/gunicorn_config.py", "config.wsgi:application"]
-# CMD ["gunicorn", "--bind", "0.0.0.0:8000", "config.wsgi:application"]
 
 COPY ./scripts /scripts
 RUN chmod +x /scripts/run.sh
