@@ -10,7 +10,7 @@ urlpatterns = [
 
     #/api/v1/users/auth/login/kakao
     #/api/v1/users/auth/login/google
-    path("/auth/login/callback/<str:social>", LoginCallbackView.as_view(), name="user-login-callback"),
+    path("/auth/login/callback/<str:social>/<int:dev>", LoginCallbackView.as_view(), name="user-login-callback"),
     
     #/api/v1/users/auth/logout
     path("/auth/logout", LogoutView.as_view(), name="user-logout"),
