@@ -19,12 +19,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 import environ
 import os
 
+
 env = environ.Env(
     DEBUG=(bool, False),
 )
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
-# SECURITY WARNING: keep the secret key used in production secret!
+# Load .env file
+env = environ.Env()
+env.read_env(os.path.join(BASE_DIR, ".env"))
+
+# MEDIA_ROOT 설정
+MEDIA_ROOT = os.environ.get("BUCKET_PATH")
+
+
+# # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -231,3 +240,5 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }
+
+

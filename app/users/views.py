@@ -2,9 +2,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.shortcuts import redirect
+from rest_framework import status
 
 from .services import SocialLoginServices, SocialLoginCallbackServices
-
 
 from users.models import User_refresh_token
 
@@ -13,7 +14,11 @@ User = get_user_model()
 from users.customs.authentication import CustomCookieAuthentication
 from common.data.envdata import ACCESS_TOKEN_COOKIE_NAME
 
+from rest_framework.permissions import IsAuthenticated
+from .serializers import UserDetailSerializer, UserNicknameSerializer
 
+from recipes.models import Recipe
+from .serializers import UserSerializer
 class LoginView(APIView):
     # authentication_classes = [CustomCookieAuthentication]
     def get(self, request):
@@ -25,7 +30,8 @@ class LoginView(APIView):
         if social_type is not None and social_type not in social_types:
             return Response({"status": 400, "message": "잘못된 소셜 타입"}, status=400)
         if social_type in social_types:
-            return SocialLoginServices.get_social_login_redirect_object(social_type)
+            dev = request.GET.get("dev", 0)
+            return SocialLoginServices.get_social_login_redirect_object(social_type, dev)
 
         # 소셜 로그인이 아니라면 토큰 로그인 진행
         authenticator = CustomCookieAuthentication()
@@ -36,14 +42,14 @@ class LoginView(APIView):
 
 
 class LoginCallbackView(APIView):
-    def get(self, request, social):
+    def get(self, request, social, dev):
         data = request.query_params.copy()
 
         code = data.get("code")
         if not code:
             return Response(status=400)
 
-        slcs = SocialLoginCallbackServices(social)
+        slcs = SocialLoginCallbackServices(social, dev)
 
         # social_token 발급 요청
         social_token = slcs.get_social_token(code)
@@ -53,6 +59,8 @@ class LoginCallbackView(APIView):
         access_token = slcs.get_access_token(user)
 
         response = Response({"status": 200, "message": "로그인 성공"})
+        redirect_uri = ["https://ndd-project.vercel.app/", "http://localhost:5173"]
+        response = redirect(redirect_uri[dev])
         response.set_cookie("ndd_access", access_token, httponly=True)
 
         user.last_login = timezone.now()
@@ -83,13 +91,66 @@ class LogoutView(APIView):
 
 
 class UserView(APIView):
+    def get(self, request):
+        user_id = 4  # 조회할 사용자의 ID를 하드코딩합니다.
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"status": 404, "message": "사용자를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+        
+        # 사용자의 레시피를 조회합니다.
+        recipes = Recipe.objects.filter(user=user)
+        recipe_data = []  # 레시피 데이터를 저장할 리스트
+        
+        for recipe in recipes:
+            recipe_data.append({
+                "id": recipe.id,
+                "title": recipe.title,
+                # "image": recipe.main_image
+            })
+        
+        serializer = UserSerializer(user)
+        user_data = serializer.data
+        
+        user_data['recipe'] = recipe_data
+        
+        return Response({
+            "status": 200,
+            "message": "조회 성공",
+            "data": user_data
+        }, status=status.HTTP_200_OK)
+
+
+class UserDeleteView(APIView):
     def delete(self, request):
-        return Response("계정 삭제 완료")
+        user_id = 2  
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"status": 404, "message": "사용자를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+        
+        user.delete()
+        return Response({"status": 200, "message": "삭제 성공"}, status=status.HTTP_200_OK)
 
 
 class UpdateNicknameView(APIView):
     def put(self, request):
-        return Response("닉네임 변경 완료")
+        user_id = 2  # 특정 사용자 ID
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"status": 404, "message": "사용자를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = UserNicknameSerializer(user, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            response_data = {
+                "status": 200,
+                "message": "변경 성공"
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UpdateImageView(APIView):
@@ -104,4 +165,34 @@ class MyPageView(APIView):
 
 class AlertEnableSettingView(APIView):
     def put(self, request):
-        return Response("알림 설정 완료")
+        user_id = 3
+        enable = request.data.get('enable', False)
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"status": 404, "message": "사용자를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+        
+        user.is_alert = enable
+        user.save()
+        
+        return Response({"status": 200, "message": "알림 설정이 업데이트되었습니다."}, status=status.HTTP_200_OK)
+
+
+class UserDetailView(APIView):
+    def post(self, request):
+        user_id = 4  # 특정 사용자 ID
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"status": 404, "message": "사용자를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = UserDetailSerializer(user, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            response_data = {
+                "status": 200,
+                "message": "변경 성공"
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
