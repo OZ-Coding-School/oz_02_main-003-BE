@@ -17,15 +17,18 @@ urlpatterns = [
 
 
     ### 계정 설정 ###
+    #/api/v1/users/detail
+    path('/detail', UserDetailView.as_view(), name='user_detail'),
     #/api/v1/users
     path("", UserView.as_view(), name="user"),
     #/api/v1/users/nickname
     path("/nickname", UpdateNicknameView.as_view(), name="user-update-nickname"),
     #/api/v1/users/image
     path("/image", UpdateImageView.as_view(), name="user-update-image"),
-
+    #/api/v1/users/delete
+    path("/delete", UserDeleteView.as_view(), name='user_delete'),
     # 알람 설정
-    #/api/v1/users/alerts/enabl
+    #/api/v1/users/alerts/enable
     path("/alerts/enable", AlertEnableSettingView.as_view(), name="user-alert-enable"),
     
     ### 마이페이지 ###
