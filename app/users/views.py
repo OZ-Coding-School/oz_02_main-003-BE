@@ -19,6 +19,8 @@ from .serializers import UserDetailSerializer, UserNicknameSerializer
 
 from recipes.models import Recipe
 from .serializers import UserSerializer
+
+
 class LoginView(APIView):
     # authentication_classes = [CustomCookieAuthentication]
     def get(self, request):
@@ -31,7 +33,9 @@ class LoginView(APIView):
             return Response({"status": 400, "message": "잘못된 소셜 타입"}, status=400)
         if social_type in social_types:
             dev = request.GET.get("dev", 0)
-            return SocialLoginServices.get_social_login_redirect_object(social_type, dev)
+            return SocialLoginServices.get_social_login_redirect_object(
+                social_type, dev
+            )
 
         # 소셜 로그인이 아니라면 토큰 로그인 진행
         authenticator = CustomCookieAuthentication()
@@ -75,7 +79,7 @@ class LogoutView(APIView):
 
     def post(self, request):
         user = request.user
-        if not user:
+        if not user.is_authenticated:
             return Response({"status": "400", "message": "토큰이 없습니다"}, 400)
 
         refresh_token_obj = User_refresh_token.objects.get(user=user)
@@ -92,63 +96,67 @@ class LogoutView(APIView):
 
 class UserView(APIView):
     def get(self, request):
-        user_id = 4  # 조회할 사용자의 ID를 하드코딩합니다.
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response({"status": 404, "message": "사용자를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
-        
+        user = request.user
+        if not user.is_authenticated:
+            return Response(
+                {"status": 404, "message": "로그인 된 유저가 아닙니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         # 사용자의 레시피를 조회합니다.
         recipes = Recipe.objects.filter(user=user)
         recipe_data = []  # 레시피 데이터를 저장할 리스트
-        
+
         for recipe in recipes:
-            recipe_data.append({
-                "id": recipe.id,
-                "title": recipe.title,
-                # "image": recipe.main_image
-            })
-        
+            recipe_data.append(
+                {
+                    "id": recipe.id,
+                    "title": recipe.title,
+                    # "image": recipe.main_image
+                }
+            )
+
         serializer = UserSerializer(user)
         user_data = serializer.data
-        
-        user_data['recipe'] = recipe_data
-        
-        return Response({
-            "status": 200,
-            "message": "조회 성공",
-            "data": user_data
-        }, status=status.HTTP_200_OK)
+
+        user_data["recipe"] = recipe_data
+
+        return Response(
+            {"status": 200, "message": "조회 성공", "data": user_data},
+            status=status.HTTP_200_OK,
+        )
 
 
 class UserDeleteView(APIView):
     def delete(self, request):
-        user_id = 2  
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response({"status": 404, "message": "사용자를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
-        
+        user = request.user
+        if not user.is_authenticated:
+            return Response(
+                {"status": 404, "message": "로그인 된 유저가 아닙니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         user.delete()
-        return Response({"status": 200, "message": "삭제 성공"}, status=status.HTTP_200_OK)
+        return Response(
+            {"status": 200, "message": "삭제 성공"}, status=status.HTTP_200_OK
+        )
 
 
 class UpdateNicknameView(APIView):
+
     def put(self, request):
-        user_id = 2  # 특정 사용자 ID
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response({"status": 404, "message": "사용자를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+        user = request.user
+        if not user.is_authenticated:
+            return Response(
+                {"status": 404, "message": "로그인 된 유저가 아닙니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         serializer = UserNicknameSerializer(user, data=request.data, partial=True)
-        
+
         if serializer.is_valid():
             serializer.save()
-            response_data = {
-                "status": 200,
-                "message": "변경 성공"
-            }
+            response_data = {"status": 200, "message": "변경 성공"}
             return Response(response_data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -165,34 +173,36 @@ class MyPageView(APIView):
 
 class AlertEnableSettingView(APIView):
     def put(self, request):
-        user_id = 3
-        enable = request.data.get('enable', False)
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response({"status": 404, "message": "사용자를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
-        
+        user = request.user
+        if not user.is_authenticated:
+            return Response(
+                {"status": 404, "message": "로그인 된 유저가 아닙니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        enable = request.data.get("enable", False)
+
         user.is_alert = enable
         user.save()
-        
-        return Response({"status": 200, "message": "알림 설정이 업데이트되었습니다."}, status=status.HTTP_200_OK)
+
+        return Response(
+            {"status": 200, "message": "알림 설정이 업데이트되었습니다."},
+            status=status.HTTP_200_OK,
+        )
 
 
 class UserDetailView(APIView):
     def post(self, request):
-        user_id = 4  # 특정 사용자 ID
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response({"status": 404, "message": "사용자를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+        user = request.user
+        if not user.is_authenticated:
+            return Response(
+                {"status": 404, "message": "로그인 된 유저가 아닙니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         serializer = UserDetailSerializer(user, data=request.data, partial=True)
-        
+
         if serializer.is_valid():
             serializer.save()
-            response_data = {
-                "status": 200,
-                "message": "변경 성공"
-            }
+            response_data = {"status": 200, "message": "변경 성공"}
             return Response(response_data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
