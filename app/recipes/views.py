@@ -185,6 +185,9 @@ class CreateRecipe(APIView):
             serializer = RecipeSerializer(data=data)
             if serializer.is_valid():
                 recipe = serializer.save()
+                temp_recipe.recipe = recipe
+                temp_recipe.save()
+
 
                 if temp_recipe.main_image:
                     recipe.main_image.save(
@@ -216,8 +219,8 @@ class CreateRecipe(APIView):
                     else:
                         print("Errors:", step_serializer.errors)
 
-                # temp_recipe.status = 0
-                # temp_recipe.save()
+                temp_recipe.status = 0
+                temp_recipe.save()
 
                 response_data = {
                     "status": 201,
@@ -265,6 +268,70 @@ class CreateRecipe(APIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+class UpdateRecipeImage(APIView):
+    def post(self, request):
+        action = request.data.get("action")
+        recipe_id = request.data.get("recipe")
+        image_type = request.data.get("type")
+        order = request.data.get("order")
+        image_data = request.data.get("image")
+
+        # Check if the required fields are present
+        if not all([action, recipe_id, image_type, image_data]):
+            return Response({"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate the type field
+        if image_type not in ["main", "step"]:
+            return Response({"error": "Invalid type"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Fetch the recipe
+            recipe = Recipe.objects.get(id=recipe_id)
+        except Recipe.DoesNotExist:
+            return Response({"error": "Recipe not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Handle update action
+        if action == "update":
+            try:
+                # Fetch the existing Temp_recipe
+                temp_recipe = Temp_recipe.objects.get(recipe=recipe, status=2)
+            except Temp_recipe.DoesNotExist:
+                # Create a new Temp_recipe if it doesn't exist
+                temp_recipe = Temp_recipe.objects.create(user_id=1, status=2, recipe=recipe)
+
+            format, imgstr = image_data.split(";base64,")
+            ext = format.split("/")[-1]
+
+            # Create a Django ContentFile from the base64 image data
+            file_name = image_type
+            if image_type == "step":
+                file_name += f'_{order}'
+
+            image_file = ContentFile(base64.b64decode(imgstr), name=f"{file_name}.{ext}")
+
+            if image_type == "main":
+                # Update Temp_recipe main image
+                temp_recipe.main_image = image_file
+                temp_recipe.save()
+                data = {
+                    "status": 200,
+                    "message": "임시 레시피 메인 이미지 업데이트 성공",
+                    "data": {"id": temp_recipe.id, "image": temp_recipe.main_image.url},
+                }
+            else:
+                # Handle step image update
+                temp_step = Temp_step.objects.create(recipe=temp_recipe, order=order, image=image_file)
+                data = {
+                    "status": 200,
+                    "message": "임시 레시피 단계 이미지 업데이트 성공",
+                    "data": {"id": temp_step.id, "image": temp_step.image.url},
+                }
+
+            return Response(data, status=status.HTTP_200_OK)
+
+        else:
+            return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
 
 class RecipeDetailDeleteView(APIView):
     def get(self, request, id):
