@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import NotFound
 
 from .models import Recipe, Recipe_ingredient, Recipe_step
-from .serializers import RecipeSerializer
+from .serializers import RecipeSerializer, Recipe_stepSerializer
 from ingredients.models import Ingredient
 from bookmarks.models import Bookmark
 from likes.models import Like
@@ -78,6 +78,7 @@ class RecipeRecommendView(APIView):
             ]
 
             recipe_info = {
+                "recipe_id": recipe.id,
                 "nickname": user.nickname,
                 "include_ingredients": include_ingredients,
                 "not_include_ingredients": not_include_ingredients,
@@ -99,18 +100,132 @@ class RecipeRecommendView(APIView):
         return Response(response_data)
 
 
+from django.core.files.base import ContentFile
+import base64
+
+from .models import Temp_recipe, Temp_step
+
+
+class CreateTempImage(APIView):
+    def post(self, request):
+        # base64 인코딩된 이미지 데이터 처리
+        if "image" in request.data:
+            image_data = request.data["image"]
+            type_data = request.data["type"]
+
+            if type_data not in ["main", "step"]:
+                return Response(
+                    {"error": "Invalid type"}, status=status.HTTP_400_BAD_REQUEST
+                )
+            format, imgstr = image_data.split(";base64,")
+            ext = format.split("/")[-1]
+
+            # 이미지 데이터를 Django의 File 객체로 변환
+            file_name = type_data
+            if type_data == "step":
+                file_name += f'_{request.data["order"]}'
+
+            image_file = ContentFile(
+                base64.b64decode(imgstr), name=f"{file_name}.{ext}"
+            )
+
+            # Temp_recipe 객체를 먼저 저장하여 ID를 할당
+            if type_data == "main":
+                temp_recipe, _ = Temp_recipe.objects.get_or_create(
+                    user_id=1, status=1
+                )  # 객체 생성 및 저장
+                temp_recipe.main_image = image_file  # 이미지 파일 할당
+                temp_recipe.save()  # 다시 저장하여 파일을 저장
+
+                data = {
+                    "status": 201,
+                    "message": "임시 레시피 이미지 저장 성공",
+                    "data": {"id": temp_recipe.id, "image": temp_recipe.main_image.url},
+                }
+                return Response(data, status=status.HTTP_201_CREATED)
+            else:
+                order = request.data["order"]
+                temp_recipe = Temp_recipe.objects.filter(
+                    user_id=1, status=1
+                ).last()
+
+                if not temp_recipe:
+                    return Response(
+                        {"error": "유효한 Temp_recipe를 찾을 수 없습니다."},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+
+                # Temp_step 객체를 먼저 생성하여 ID를 할당하고 Temp_recipe와 연결
+                temp_step, _ = Temp_step.objects.get_or_create(
+                    recipe=temp_recipe, order=order
+                )
+                temp_step.image = image_file
+                temp_step.save()
+
+                data = {
+                    "status": 201,
+                    "message": "임시 레시피 이미지 저장 성공",
+                    "data": {"id": temp_step.id, "image": temp_step.image.url},
+                }
+                return Response(data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(
+                {"error": "No image data provided"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+from django.core.files import File
+import os
+
 class CreateRecipe(APIView):
     def post(self, request):
-        serializer = RecipeSerializer(data=request.data)
-        if serializer.is_valid():
-            recipe = serializer.save()
-            data = {
-                "status": 201,
-                "message": "레시피 작성 성공",
-                "data": {"id": recipe.id},
-            }
-            return Response(data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        temp_recipe = Temp_recipe.objects.filter(user_id=1, status=1).first()
+
+        if temp_recipe:
+            data = request.data.copy()
+            serializer = RecipeSerializer(data=data)
+            if serializer.is_valid():
+                recipe = serializer.save()
+
+                if temp_recipe.main_image:
+                    recipe.main_image.save(
+                        os.path.basename(temp_recipe.main_image.name),
+                        File(temp_recipe.main_image)
+                    )
+
+
+                if serializer.is_valid():
+                    recipe = serializer.save()
+
+
+                    temp_steps = Temp_step.objects.filter(recipe=temp_recipe).order_by('order')
+                    steps_data = data.get('steps', [])
+                    for temp_step, step_data in zip(temp_steps, steps_data):
+                        step_data = {'recipe': recipe.id, 'step': step_data.step}
+                        step_serializer = Recipe_stepSerializer(data=step_data)
+                        if step_serializer.is_valid():
+                            recipe_step = step_serializer.save()
+                            if temp_step.image:
+                                recipe_step.image.save(
+                                    os.path.basename(temp_step.image.name),
+                                    File(temp_step.image)
+                                )
+
+                    temp_recipe.status = 0
+                    temp_recipe.save()
+
+                    response_data = {
+                        "status": 201,
+                        "message": "레시피 작성 성공",
+                        "data": {"id": recipe.id},
+                    }
+                    return Response(response_data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"detail": "유효한 temp_recipe를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+
 
     def put(self, request, *args, **kwargs):
         recipe_id = request.data.get("id")
