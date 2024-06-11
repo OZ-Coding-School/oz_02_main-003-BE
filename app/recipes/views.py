@@ -311,15 +311,15 @@ class CreateRecipe(APIView):
                         temp_image = temp_steps[count].image
                         count += 1
 
-                step_data = {'recipe': recipe.id, 'step': step_text, 'image': temp_image}
+                step_data = {'recipe': recipe.id, 'step': step_text}
                 step_serializer = Recipe_stepSerializer(data=step_data)
-
+                    
                 if step_serializer.is_valid():
                     recipe_step = step_serializer.save()
                     if temp_image:
                         recipe_step.image.save(
                             os.path.basename(temp_image.name),
-                            File(temp_image)
+                            File(temp_image),
                         )
                 else:
                     print("Errors:", step_serializer.errors)
@@ -478,7 +478,7 @@ class RecipeDetailDeleteView(APIView):
                         for ingredient in ingredients
                     ],
                     "steps": [
-                        {"step": step.step, "image": step.image} for step in steps
+                        {"step": step.step, "image": step.image.url if step.image else ""} for step in steps
                     ],
                     "comments": comment_data,
                 },
@@ -509,10 +509,10 @@ class RecipeDetailDeleteView(APIView):
 class RecipeCategoryListView(APIView):
     def get_category_name(self, category):
         category_mapping = {
-            "daily": "일상요리",
-            "healthy": "건강식",
-            "midnight": "야식",
-            "desert": "디저트",
+            "daily": "1",
+            "healthy": "2",
+            "midnight": "3",
+            "desert": "4",
         }
         return category_mapping.get(category, None)
 
@@ -551,7 +551,7 @@ class RecipeCategoryListView(APIView):
                 "id": recipe.id,
                 "user": user.nickname,
                 "title": recipe.title,
-                "main_image": recipe.main_image,
+                "main_image": recipe.main_image.url,
                 "like": Like.objects.filter(recipe_id=recipe.id).count(),
                 "like_status": like_status,
                 "book": Bookmark.objects.filter(recipe_id=recipe.id).count(),
@@ -562,7 +562,7 @@ class RecipeCategoryListView(APIView):
         response_data = {
             "status": 200,
             "message": (
-                f"{category_name} 카테고리 레시피 조회 성공"
+                "카테고리 레시피 조회 성공"
                 if category_name
                 else "좋아요 및 북마크 레시피 조회 성공"
             ),
@@ -600,7 +600,7 @@ class RecipeSearchKeywordView(APIView):
                 "id": recipe.id,
                 "user": user.nickname,
                 "title": recipe.title,
-                "main_image": recipe.main_image,
+                "main_image": recipe.main_image.url,
                 "like": Like.objects.filter(recipe_id=recipe.id).count(),
                 "like_status": like_status,
                 "book": Bookmark.objects.filter(recipe_id=recipe.id).count(),
