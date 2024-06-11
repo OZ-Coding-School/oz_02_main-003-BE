@@ -66,7 +66,7 @@ class LoginCallbackView(APIView):
         access_token = slcs.get_access_token(user)
 
         response = Response({"status": 200, "message": "로그인 성공"})
-        redirect_uri = ["https://nddapp.duckdns.org/", "http://localhost:5173"]
+        redirect_uri = ["https://ndd.life", "http://localhost:5173"]
         response = redirect(redirect_uri[dev])
         response.set_cookie(
             key="ndd_access",
