@@ -31,7 +31,7 @@ class RecipeRecommendView(APIView):
         ).distinct()
 
         # 사용자 ID 가져오기
-        user_id = 1
+        user_id = request.user.id
 
         # 레시피 정보를 담을 리스트 초기화
         recipe_data = []
@@ -109,6 +109,7 @@ from .models import Temp_recipe, Temp_step, Unit
 class CreateTempImage(APIView):
     def post(self, request):
         actions = request.data["action"]
+        user_id = request.user.id
         if actions == "write":
             if "image" in request.data:
                 image_data = request.data["image"]
@@ -134,7 +135,7 @@ class CreateTempImage(APIView):
                 # Temp_recipe 객체를 먼저 저장하여 ID를 할당
                 if type_data == "main":
                     temp_recipe, _ = Temp_recipe.objects.get_or_create(
-                        user_id=1, status=1
+                        user_id=user_id, status=1
                     )  # 객체 생성 및 저장
                     temp_recipe.main_image = image_file  # 이미지 파일 할당
                     temp_recipe.save()  # 다시 저장하여 파일을 저장
@@ -265,7 +266,7 @@ class CreateRecipe(APIView):
             steps_data = data.pop('steps', [])
 
             
-            user_id = 1
+            user_id = request.user.id
             recipe = Recipe.objects.create(user_id=user_id, **data)
             temp_recipe.recipe = recipe
             temp_recipe.save()
@@ -384,7 +385,7 @@ class RecipeDetailDeleteView(APIView):
             likes_count = Like.objects.filter(recipe_id=id).count()
 
             # 테스트용 user_id 하드코딩
-            user_id = 1
+            user_id = request.user.id
 
             like_status = (
                 Like.objects.filter(recipe_id=id, user_id=user_id)
@@ -517,7 +518,7 @@ class RecipeCategoryListView(APIView):
         return category_mapping.get(category, None)
 
     def get(self, request, category=None):
-        user_id = 1  # 현재 사용자의 ID 가져오기
+        user_id = request.user.id  # 현재 사용자의 ID 가져오기
         category_name = self.get_category_name(category)
 
         if category == "like":
@@ -574,7 +575,7 @@ class RecipeCategoryListView(APIView):
 
 class RecipeSearchKeywordView(APIView):
     def get(self, request, keyword):
-        user_id = 1
+        user_id = request.user.id
         if not keyword:
             return Response({"message": "검색어를 입력해 주세요."}, status=400)
 

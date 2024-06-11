@@ -15,7 +15,7 @@ class IngredientTypeView(APIView):
             ingredients = Ingredient.objects.filter(recipe_ingredient__isnull=False).distinct()
         elif type == 'fridge':
             # 사용자의 냉장고에 저장된 재료 조회
-            user_id = 1 # 토큰에서 사용자 ID 추출
+            user_id = request.user.id # 토큰에서 사용자 ID 추출
             ingredients = Ingredient.objects.filter(fridge__user_id=user_id).distinct()
             print(ingredients)
         else:
