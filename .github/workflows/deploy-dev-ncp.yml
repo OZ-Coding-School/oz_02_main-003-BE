@@ -5,11 +5,11 @@ on:
       - develop
 jobs:
   build:
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
     steps:
       - name: SSH-Deploy
         uses: appleboy/ssh-action@master
-        with: 
+        with:
           host: ${{secrets.NCP_SSH_IP}}
           port: ${{secrets.NCP_SSH_PORT}}
           username: ${{secrets.NCP_SSH_ID}}
