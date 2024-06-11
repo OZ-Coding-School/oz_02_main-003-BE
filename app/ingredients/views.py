@@ -1,11 +1,10 @@
 from django.shortcuts import render
+from django.db.models import Q
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.db.models import Q
+from rest_framework import status
 
 from .models import Ingredient
-from likes.models import Like
-from bookmarks.models import Bookmark
 
 class IngredientTypeView(APIView):
     def get(self, request, type):
@@ -49,7 +48,11 @@ class IngredientTypeSearchView(APIView):
             ingredients = Ingredient.objects.filter(name__icontains=search, recipe_ingredient__isnull=False).distinct()
         elif type == 'fridge':
             # 사용자의 냉장고에 저장된 재료 검색
+
             user_id = request.user.id
+            if not user_id:
+                return Response({"status": 400, "message": "사용자 인증이 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
             ingredients = Ingredient.objects.filter(name__icontains=search, fridge__user_id=user_id).distinct()
         else:
             return Response({"status": 400, "message": "잘못된 type입니다."}, status=400)
