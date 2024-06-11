@@ -7,6 +7,4 @@ urlpatterns = [
     path("", UserAlertsView.as_view(), name="user-alerts"),
     # /api/v1/alerts/status
     path("/status/", UnreadUserAlertsView.as_view(), name="unread-alerts"),
-    path("/<int:user_id>/", UserAlertsView.as_view(), name="user-alerts"),
 ]
-
