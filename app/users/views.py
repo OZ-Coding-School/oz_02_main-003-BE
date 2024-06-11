@@ -171,16 +171,49 @@ class UpdateNicknameView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UpdateImageView(APIView):
-    def put(self, request):
+
+
+from django.core.files.base import ContentFile
+import base64
+from .models import Temp_user
+
+
+class TempImageView(APIView):
+    def post(self, request):
         user = request.user
+
         if not user:
             return Response(
                 {"status": 404, "message": "로그인 된 유저가 아닙니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        return Response("프로필 사진 변경 완료")
+        image_data = request.data.get("image")
+        if not image_data:
+            return Response(
+                {"status": 400, "message": "이미지 데이터가 제공되지 않았습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            format, imgstr = image_data.split(";base64,")
+            ext = format.split("/")[-1]
+            filename = f"{user.username}.{ext}"
+            temp_user_image = ContentFile(base64.b64decode(imgstr), name=filename)
+
+            temp_user, created = Temp_user.objects.get_or_create(user=user)
+            temp_user.temp_image.save(filename, temp_user_image)
+            temp_user.save()
+
+            return Response(
+                {"status": 200, "message": "임시 프로필 사진 저장 완료", "temp_image_url": temp_user.temp_image.url},
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            return Response(
+                {"status": 500, "message": f"임시 프로필 사진 저장 중 오류가 발생했습니다: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class MyPageView(APIView):
