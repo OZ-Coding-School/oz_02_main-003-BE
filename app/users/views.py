@@ -73,8 +73,6 @@ class LoginCallbackView(APIView):
             max_age=timedelta(days=30),
             value=access_token,
             httponly=True,
-            samesite=None,
-            secure=True,
         )
 
         user.last_login = timezone.now()
