@@ -21,6 +21,8 @@ from recipes.models import Recipe
 from .serializers import UserSerializer
 from django.shortcuts import get_object_or_404
 
+from datetime import timedelta
+
 
 class LoginView(APIView):
     # authentication_classes = [CustomCookieAuthentication]
@@ -68,10 +70,11 @@ class LoginCallbackView(APIView):
         response = redirect(redirect_uri[dev])
         response.set_cookie(
             key="ndd_access",
+            max_age=timedelta(days=30),
             value=access_token,
             httponly=True,
             samesite=None,
-            secure=False,
+            secure=True,
         )
 
         user.last_login = timezone.now()

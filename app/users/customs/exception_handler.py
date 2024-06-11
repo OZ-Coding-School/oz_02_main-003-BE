@@ -7,7 +7,6 @@ from common.utils.token_handler import TokenManager
 from datetime import timedelta
 
 
-
 def add_response_actions_by_code(response, exc):
     code = exc.code
     if code in [-498]:
@@ -20,6 +19,8 @@ def add_response_actions_by_code(response, exc):
             new_access_token,
             max_age=timedelta(days=30),
             httponly=True,
+            samesite=None,
+            secure=True,
         )
 
 
