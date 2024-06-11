@@ -103,130 +103,240 @@ class RecipeRecommendView(APIView):
 from django.core.files.base import ContentFile
 import base64
 
-from .models import Temp_recipe, Temp_step
+from .models import Temp_recipe, Temp_step, Unit
 
 
 class CreateTempImage(APIView):
     def post(self, request):
-        # base64 인코딩된 이미지 데이터 처리
-        if "image" in request.data:
-            image_data = request.data["image"]
-            type_data = request.data["type"]
+        actions = request.data["action"]
+        if actions == "write":
+            if "image" in request.data:
+                image_data = request.data["image"]
+                type_data = request.data["type"]
 
-            if type_data not in ["main", "step"]:
-                return Response(
-                    {"error": "Invalid type"}, status=status.HTTP_400_BAD_REQUEST
-                )
-            format, imgstr = image_data.split(";base64,")
-            ext = format.split("/")[-1]
-
-            # 이미지 데이터를 Django의 File 객체로 변환
-            file_name = type_data
-            if type_data == "step":
-                file_name += f'_{request.data["order"]}'
-
-            image_file = ContentFile(
-                base64.b64decode(imgstr), name=f"{file_name}.{ext}"
-            )
-
-            # Temp_recipe 객체를 먼저 저장하여 ID를 할당
-            if type_data == "main":
-                temp_recipe, _ = Temp_recipe.objects.get_or_create(
-                    user_id=1, status=1
-                )  # 객체 생성 및 저장
-                temp_recipe.main_image = image_file  # 이미지 파일 할당
-                temp_recipe.save()  # 다시 저장하여 파일을 저장
-
-                data = {
-                    "status": 201,
-                    "message": "임시 레시피 이미지 저장 성공",
-                    "data": {"id": temp_recipe.id, "image": temp_recipe.main_image.url},
-                }
-                return Response(data, status=status.HTTP_201_CREATED)
-            else:
-                order = request.data["order"]
-                temp_recipe = Temp_recipe.objects.filter(
-                    user_id=1, status=1
-                ).last()
-
-                if not temp_recipe:
+                if type_data not in ["main", "step"]:
                     return Response(
-                        {"error": "유효한 Temp_recipe를 찾을 수 없습니다."},
-                        status=status.HTTP_404_NOT_FOUND
+                        {"error": "Invalid type"}, status=status.HTTP_400_BAD_REQUEST
                     )
+                format, imgstr = image_data.split(";base64,")
+                ext = format.split("/")[-1]
 
-                # Temp_step 객체를 먼저 생성하여 ID를 할당하고 Temp_recipe와 연결
-                temp_step, _ = Temp_step.objects.get_or_create(
-                    recipe=temp_recipe, order=order
+                # 이미지 데이터를 Django의 File 객체로 변환
+                
+                file_name = type_data
+                if type_data == "step":
+                    file_name += f'_{request.data["order"]}'
+
+                image_file = ContentFile(
+                    base64.b64decode(imgstr), name=f"{file_name}.{ext}"
                 )
-                temp_step.image = image_file
-                temp_step.save()
 
-                data = {
-                    "status": 201,
-                    "message": "임시 레시피 이미지 저장 성공",
-                    "data": {"id": temp_step.id, "image": temp_step.image.url},
-                }
-                return Response(data, status=status.HTTP_201_CREATED)
+                # Temp_recipe 객체를 먼저 저장하여 ID를 할당
+                if type_data == "main":
+                    temp_recipe, _ = Temp_recipe.objects.get_or_create(
+                        user_id=1, status=1
+                    )  # 객체 생성 및 저장
+                    temp_recipe.main_image = image_file  # 이미지 파일 할당
+                    temp_recipe.save()  # 다시 저장하여 파일을 저장
+
+                    data = {
+                        "status": 201,
+                        "message": "임시 레시피 이미지 저장 성공",
+                        "data": {"id": temp_recipe.id, "image": temp_recipe.main_image.url},
+                    }
+                    return Response(data, status=status.HTTP_201_CREATED)
+                else:
+                    order = request.data["order"]
+                    temp_recipe = Temp_recipe.objects.filter(
+                        user_id=1, status=1
+                    ).last()
+
+                    if not temp_recipe:
+                        return Response(
+                            {"error": "유효한 Temp_recipe를 찾을 수 없습니다."},
+                            status=status.HTTP_404_NOT_FOUND
+                        )
+
+                    # Temp_step 객체를 먼저 생성하여 ID를 할당하고 Temp_recipe와 연결
+                    temp_step, _ = Temp_step.objects.get_or_create(
+                        recipe=temp_recipe, order=order
+                    )
+                    temp_step.image = image_file
+                    temp_step.save()
+
+                    data = {
+                        "status": 201,
+                        "message": "임시 레시피 이미지 저장 성공",
+                        "data": {"id": temp_step.id, "image": temp_step.image.url},
+                    }
+                    return Response(data, status=status.HTTP_201_CREATED)
+            else:
+                return Response(
+                    {"error": "No image data provided"}, status=status.HTTP_400_BAD_REQUEST
+                )
+
+    def put(self, request):
+        actions = request.data.get("action")
+        if actions == "update":
+            recipe_id = request.data.get("recipe")
+            if not recipe_id:
+                return Response(
+                    {"error": "Recipe ID not provided"}, status=status.HTTP_400_BAD_REQUEST
+                )
+
+            try:
+                recipe = Recipe.objects.get(id=recipe_id)
+            except Recipe.DoesNotExist:
+                return Response(
+                    {"error": "Recipe not found"}, status=status.HTTP_404_NOT_FOUND
+                )
+
+            temp_recipe = Temp_recipe.objects.filter(recipe=recipe).first()
+            if not temp_recipe:
+                temp_recipe = Temp_recipe.objects.create(recipe=recipe, status=2)
+
+            if "image" in request.data:
+                image_data = request.data["image"]
+                type_data = request.data["type"]
+
+                if type_data not in ["main", "step"]:
+                    return Response(
+                        {"error": "Invalid type"}, status=status.HTTP_400_BAD_REQUEST
+                    )
+                format, imgstr = image_data.split(";base64,")
+                ext = format.split("/")[-1]
+
+                # 이미지 데이터를 Django의 File 객체로 변환
+                file_name = type_data
+                if type_data == "step":
+                    file_name += f'_{request.data["order"]}'
+
+                image_file = ContentFile(
+                    base64.b64decode(imgstr), name=f"{file_name}.{ext}"
+                )
+
+                if type_data == "main":
+                    temp_recipe.main_image = image_file
+                    temp_recipe.save()
+
+                    data = {
+                        "status": 200,
+                        "message": "임시 레시피 이미지 업데이트 성공",
+                        "data": {"id": temp_recipe.id, "image": temp_recipe.main_image.url},
+                    }
+                    return Response(data, status=status.HTTP_200_OK)
+                else:
+                    order = request.data["order"]
+                    temp_step, _ = Temp_step.objects.get_or_create(recipe=temp_recipe, order=order)
+                    temp_step.image = image_file
+                    temp_step.save()
+
+                    data = {
+                        "status": 200,
+                        "message": "임시 레시피 이미지 업데이트 성공",
+                        "data": {"id": temp_step.id, "image": temp_step.image.url},
+                    }
+                    return Response(data, status=status.HTTP_200_OK)
+
+            else:
+                return Response(
+                    {"error": "No image data provided"}, status=status.HTTP_400_BAD_REQUEST
+                )
+
         else:
             return Response(
-                {"error": "No image data provided"}, status=status.HTTP_400_BAD_REQUEST
+                {"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST
             )
-
 from django.core.files import File
 import os
 
 class CreateRecipe(APIView):
     def post(self, request):
-        temp_recipe = Temp_recipe.objects.filter(user_id=1, status=1).first()
+        try:
+            temp_recipe = Temp_recipe.objects.filter(user_id=1, status=1).first()
 
-        if temp_recipe:
+            if not temp_recipe:
+                return Response({"error": "Temporary recipe not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            # 요청 데이터를 복사하여 수정 가능하게 만듭니다.
             data = request.data.copy()
-            serializer = RecipeSerializer(data=data)
-            if serializer.is_valid():
-                recipe = serializer.save()
 
-                if temp_recipe.main_image:
-                    recipe.main_image.save(
-                        os.path.basename(temp_recipe.main_image.name),
-                        File(temp_recipe.main_image)
-                    )
+            recipe_ingredients_data = data.pop('recipe_ingredients', [])
+            steps_data = data.pop('steps', [])
 
-
-                if serializer.is_valid():
-                    recipe = serializer.save()
+            
+            user_id = 1
+            recipe = Recipe.objects.create(user_id=user_id, **data)
+            temp_recipe.recipe = recipe
+            temp_recipe.save()
 
 
-                    temp_steps = Temp_step.objects.filter(recipe=temp_recipe).order_by('order')
-                    steps_data = data.get('steps', [])
-                    for temp_step, step_data in zip(temp_steps, steps_data):
-                        step_data = {'recipe': recipe.id, 'step': step_data}
-                        step_serializer = Recipe_stepSerializer(data=step_data)
-                        if step_serializer.is_valid():
-                            recipe_step = step_serializer.save()
-                            if temp_step.image:
-                                
-                                recipe_step.image.save(
-                                    os.path.basename(temp_step.image.name),
-                                    File(temp_step.image)
-                                )
+            if temp_recipe.main_image:
+                recipe.main_image.save(
+                    os.path.basename(temp_recipe.main_image.name),
+                    File(temp_recipe.main_image)
+                )
 
-                    temp_recipe.status = 0
-                    temp_recipe.save()
+            for ingredient_data in recipe_ingredients_data:
+                ingredient_name = ingredient_data.get('name', None)
+                unit_id = ingredient_data.get('unit')
+                quantity = ingredient_data.get('quantity')
 
-                    response_data = {
-                        "status": 201,
-                        "message": "레시피 작성 성공",
-                        "data": {"id": recipe.id},
-                    }
-                    return Response(response_data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({"detail": "유효한 temp_recipe를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+                # 재료를 DB에서 찾거나 없으면 새로 생성
+                try:
+                    ingredient = Ingredient.objects.get(name=ingredient_name)
+                except Ingredient.DoesNotExist:
+                    # 존재하지 않는 경우 새로운 재료 생성
+                    ingredient = Ingredient.objects.create(name=ingredient_name)
 
+                # 단위 객체 가져오기
+                unit = Unit.objects.get(id=unit_id)
 
+                # RecipeIngredient 생성
+                Recipe_ingredient.objects.create(
+                    recipe=recipe,
+                    ingredient=ingredient,
+                    quantity=quantity,
+                    unit=unit
+                )
 
+            # Temp_step에서 Recipe_step으로 복사
+            temp_steps = Temp_step.objects.filter(recipe=temp_recipe).order_by('order')
 
+            count = 0
+            for i, step_text in enumerate(steps_data, 1):
+                temp_image = None
+                if temp_steps and count < len(temp_steps):
+                    if i == temp_steps[count].order:
+                        temp_image = temp_steps[count].image
+                        count += 1
+
+                step_data = {'recipe': recipe.id, 'step': step_text, 'image': temp_image}
+                step_serializer = Recipe_stepSerializer(data=step_data)
+
+                if step_serializer.is_valid():
+                    recipe_step = step_serializer.save()
+                    if temp_image:
+                        recipe_step.image.save(
+                            os.path.basename(temp_image.name),
+                            File(temp_image)
+                        )
+                else:
+                    print("Errors:", step_serializer.errors)
+
+            # temp_recipe 상태 업데이트
+            temp_recipe.status = 0
+            temp_recipe.save()
+
+            response_data = {
+                "status": 201,
+                "message": "레시피 작성 성공",
+                "data": {"id": recipe.id},
+            }
+            return Response(response_data, status=status.HTTP_201_CREATED)
+        
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def put(self, request, *args, **kwargs):
         recipe_id = request.data.get("id")
@@ -263,6 +373,7 @@ class CreateRecipe(APIView):
             return Response(data, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class RecipeDetailDeleteView(APIView):
@@ -337,6 +448,9 @@ class RecipeDetailDeleteView(APIView):
                 )
 
             serializer = RecipeSerializer(recipe)
+            print([
+                        {"step": step.step, "image": step.image} for step in steps
+                    ],)
             data = {
                 "status": status.HTTP_200_OK,
                 "message": "레시피 조회 성공",
@@ -353,6 +467,7 @@ class RecipeDetailDeleteView(APIView):
                         "profile_image": recipe.user.image,
                         "date": recipe.updated_at,
                     },
+                    
                     "ingredients": [
                         {
                             "id": ingredient.id,
@@ -499,3 +614,4 @@ class RecipeSearchKeywordView(APIView):
             "data": recipe_data,
         }
         return Response(response_data, status=status.HTTP_200_OK)
+
