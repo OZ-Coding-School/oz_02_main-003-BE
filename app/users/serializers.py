@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import User
+from recipes.models import Recipe
 
 class UserDetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -20,3 +21,15 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'nickname', 'image']
+        
+class RecipeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = ['id','main_image']
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    recipes = RecipeSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['nickname', 'image', 'recipes']

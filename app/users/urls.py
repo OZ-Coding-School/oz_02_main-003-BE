@@ -33,5 +33,5 @@ urlpatterns = [
     
     ### 마이페이지 ###
     #/api/v1/users/mypage/1/3
-    path("/mypage/<int:user_id>/<int:scroll_count>", MyPageView.as_view(), name="user-mypage"),
+    path("/mypage/<int:id>/<int:cnt>", MyPageView.as_view(), name="user-mypage"),
 ]
