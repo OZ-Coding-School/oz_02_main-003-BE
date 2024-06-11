@@ -14,10 +14,10 @@ def upload_image_step(instance, filename):
 
 def temp_upload_image(instance, filename):
     filename_base, filename_ext = os.path.splitext(filename)
-    if hasattr(instance, 'recipe') and instance.recipe:
+    if hasattr(instance, 'step') and instance.recipe:
         new_filename = f"temp/{instance.recipe.id}/{filename_base}{filename_ext}"
     else:
-        new_filename = f"temp/{instance.id}/{filename_base}{filename_ext}"
+         new_filename = f"temp/{instance.id}/{filename_base}{filename_ext}"
     return new_filename
 
 

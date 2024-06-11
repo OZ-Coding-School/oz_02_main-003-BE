@@ -1,13 +1,11 @@
 from django.urls import path
-from .views import CreateRecipe, RecipeRecommendView, RecipeDetailDeleteView, RecipeCategoryListView, RecipeSearchKeywordView, CreateTempImage, UpdateRecipeImage
+from .views import CreateRecipe, RecipeRecommendView, RecipeDetailDeleteView, RecipeCategoryListView, RecipeSearchKeywordView, CreateTempImage
 
 urlpatterns = [
     # /api/v1/recipes
     path("", CreateRecipe.as_view(), name="create-recipe"),
     # /api/v1/recipes/temp
     path("/temp", CreateTempImage.as_view(), name="create-temp-recipe"),
-    # /api/v1/recipes/update
-    path("/update", UpdateRecipeImage.as_view(), name="create-temp-recipe"),
     # /api/v1/recipes/1
     path("/<int:id>", RecipeDetailDeleteView.as_view(), name="detail-recipe"),
     # /api/v1/recipes/category/book
