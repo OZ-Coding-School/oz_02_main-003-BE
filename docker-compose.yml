@@ -53,7 +53,6 @@ services:
       - 443:443
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt
-      - ./nginx/var/lib/letsencrypt:/var/lib/letsencrypt
       - ./app:/ndd/app
       - ./log/nginx:/log
       - static-data:/ndd/statics
