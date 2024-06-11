@@ -63,9 +63,15 @@ class LoginCallbackView(APIView):
         access_token = slcs.get_access_token(user)
 
         response = Response({"status": 200, "message": "로그인 성공"})
-        redirect_uri = ["https://ndd-project.vercel.app/", "http://localhost:5173"]
+        redirect_uri = ["https://nddapp.duckdns.org/", "http://localhost:5173"]
         response = redirect(redirect_uri[dev])
-        response.set_cookie("ndd_access", access_token, httponly=True)
+        response.set_cookie(
+            key="ndd_access",
+            value=access_token,
+            httponly=True,
+            samesite=None,
+            secure=False,
+        )
 
         user.last_login = timezone.now()
         user.is_login = True
