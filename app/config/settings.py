@@ -41,6 +41,8 @@ DEBUG = str(os.environ.get("DEV", False)).lower() in ["true", "1"]
 
 ALLOWED_HOSTS = ["*"]
 
+SECURE_SSL_REDIRECT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Application definition
 
