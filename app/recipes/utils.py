@@ -17,7 +17,7 @@ def temp_upload_image(instance, filename):
     if hasattr(instance, 'step') and instance.recipe:
         new_filename = f"temp/{instance.recipe.id}/{filename_base}{filename_ext}"
     else:
-         new_filename = f"temp/{instance.id}/{filename_base}{filename_ext}"
+        new_filename = f"temp/{instance.id}/{filename_base}{filename_ext}"
     return new_filename
 
 

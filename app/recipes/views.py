@@ -311,15 +311,15 @@ class CreateRecipe(APIView):
                         temp_image = temp_steps[count].image
                         count += 1
 
-                step_data = {'recipe': recipe.id, 'step': step_text, 'image': temp_image}
+                step_data = {'recipe': recipe.id, 'step': step_text}
                 step_serializer = Recipe_stepSerializer(data=step_data)
-
+                    
                 if step_serializer.is_valid():
                     recipe_step = step_serializer.save()
                     if temp_image:
                         recipe_step.image.save(
                             os.path.basename(temp_image.name),
-                            File(temp_image)
+                            File(temp_image),
                         )
                 else:
                     print("Errors:", step_serializer.errors)
@@ -478,7 +478,7 @@ class RecipeDetailDeleteView(APIView):
                         for ingredient in ingredients
                     ],
                     "steps": [
-                        {"step": step.step, "image": step.image} for step in steps
+                        {"step": step.step, "image": step.image.url if step.image else ""} for step in steps
                     ],
                     "comments": comment_data,
                 },
