@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.shortcuts import redirect
 from rest_framework import status
+from django.http import JsonResponse
 
 from .services import SocialLoginServices, SocialLoginCallbackServices
 
@@ -171,24 +172,28 @@ class UpdateNicknameView(APIView):
 
 
 
-from django.core.files.base import ContentFile
 import base64
+import os
+import random
+import string
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from .models import Temp_user
-
+from .utils import generate_image_path
 
 class TempImageView(APIView):
     def post(self, request):
         user = request.user
 
         if not user:
-            return Response(
+            return JsonResponse(
                 {"status": 404, "message": "로그인 된 유저가 아닙니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
         image_data = request.data.get("image")
         if not image_data:
-            return Response(
+            return JsonResponse(
                 {"status": 400, "message": "이미지 데이터가 제공되지 않았습니다."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -196,23 +201,28 @@ class TempImageView(APIView):
         try:
             format, imgstr = image_data.split(";base64,")
             ext = format.split("/")[-1]
-            filename = f"{user.username}.{ext}"
-            temp_user_image = ContentFile(base64.b64decode(imgstr), name=filename)
 
-            temp_user, created = Temp_user.objects.get_or_create(user=user)
-            temp_user.temp_image.save(filename, temp_user_image)
+            # .env 파일에서 BUCKET_PATH를 불러와서 경로 조합
+            BUCKET_PATH = os.environ.get("BUCKET_PATH", "")
+            image_path, relative_image_path = generate_image_path(user, ext, BUCKET_PATH)
+
+            # 파일 저장
+            content = base64.b64decode(imgstr)
+            default_storage.save(image_path, ContentFile(content))
+
+            temp_user, created = Temp_user.objects.get_or_create(user_id=user.id)
+            temp_user.image = relative_image_path
             temp_user.save()
 
-            return Response(
-                {"status": 200, "message": "임시 프로필 사진 저장 완료", "temp_image_url": temp_user.temp_image.url},
+            return JsonResponse(
+                {"status": 200, "message": "임시 프로필 사진 저장 완료", "temp_image_url": relative_image_path},
                 status=status.HTTP_200_OK,
             )
         except Exception as e:
-            return Response(
+            return JsonResponse(
                 {"status": 500, "message": f"임시 프로필 사진 저장 중 오류가 발생했습니다: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
 
 class MyPageView(APIView):
     def get(self, request, id, cnt):

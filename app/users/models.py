@@ -57,6 +57,7 @@ class Temp_user(AbstractBaseUser, CommonDateModel):
     is_alert = models.BooleanField(default=True, null=True, blank=True)
     social_id = models.CharField(max_length=100, null=True, unique=True)
     social_type = models.CharField(max_length=15, null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     objects = UserManager()
 
 class User_refresh_token(CommonDateModel):

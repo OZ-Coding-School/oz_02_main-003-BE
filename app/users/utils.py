@@ -26,3 +26,14 @@ def update_or_create_refresh_token_data(user, token):
     User_refresh_token.objects.update_or_create(
         defaults=new_refresh_token_data, **{"user": user}
     )
+
+
+import os
+import random
+import string
+
+def generate_image_path(user, ext, bucket_path):
+    unique_filename = f"{user.nickname}_{''.join(random.choices(string.ascii_uppercase + string.digits, k=6))}.{ext}"
+    image_path = os.path.join(bucket_path, 'user', str(user.id), unique_filename)
+    relative_image_path = os.path.join('/user', str(user.id), unique_filename)
+    return image_path, relative_image_path
