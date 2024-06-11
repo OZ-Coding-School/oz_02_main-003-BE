@@ -79,7 +79,7 @@ class LogoutView(APIView):
 
     def post(self, request):
         user = request.user
-        if not user.is_authenticated:
+        if not user:
             return Response({"status": "400", "message": "토큰이 없습니다"}, 400)
 
         refresh_token_obj = User_refresh_token.objects.get(user=user)
@@ -97,7 +97,7 @@ class LogoutView(APIView):
 class UserView(APIView):
     def get(self, request):
         user = request.user
-        if not user.is_authenticated:
+        if not user:
             return Response(
                 {"status": 404, "message": "로그인 된 유저가 아닙니다."},
                 status=status.HTTP_404_NOT_FOUND,
@@ -130,7 +130,7 @@ class UserView(APIView):
 class UserDeleteView(APIView):
     def delete(self, request):
         user = request.user
-        if not user.is_authenticated:
+        if not user:
             return Response(
                 {"status": 404, "message": "로그인 된 유저가 아닙니다."},
                 status=status.HTTP_404_NOT_FOUND,
@@ -146,7 +146,7 @@ class UpdateNicknameView(APIView):
 
     def put(self, request):
         user = request.user
-        if not user.is_authenticated:
+        if not user:
             return Response(
                 {"status": 404, "message": "로그인 된 유저가 아닙니다."},
                 status=status.HTTP_404_NOT_FOUND,
@@ -174,7 +174,7 @@ class MyPageView(APIView):
 class AlertEnableSettingView(APIView):
     def put(self, request):
         user = request.user
-        if not user.is_authenticated:
+        if not user:
             return Response(
                 {"status": 404, "message": "로그인 된 유저가 아닙니다."},
                 status=status.HTTP_404_NOT_FOUND,
@@ -193,7 +193,7 @@ class AlertEnableSettingView(APIView):
 class UserDetailView(APIView):
     def post(self, request):
         user = request.user
-        if not user.is_authenticated:
+        if not user:
             return Response(
                 {"status": 404, "message": "로그인 된 유저가 아닙니다."},
                 status=status.HTTP_404_NOT_FOUND,

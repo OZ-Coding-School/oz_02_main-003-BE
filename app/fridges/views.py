@@ -12,7 +12,7 @@ User = get_user_model()
 class FridgeView(APIView):
     def get(self, request, user_id):
         user = request.user
-        if not user.is_authenticated:
+        if not user:
             return Response(
                 {"status": 404, "message": "로그인 된 유저가 아닙니다."},
                 status=status.HTTP_404_NOT_FOUND,
@@ -41,7 +41,7 @@ class FridgeIngredientAddView(APIView):
 
     def post(self, request):
         user = request.user
-        if not user.is_authenticated:
+        if not user:
             return Response(
                 {"status": 404, "message": "로그인 된 유저가 아닙니다."},
                 status=status.HTTP_404_NOT_FOUND,
