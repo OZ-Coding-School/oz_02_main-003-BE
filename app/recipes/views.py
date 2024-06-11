@@ -600,7 +600,7 @@ class RecipeSearchKeywordView(APIView):
                 "id": recipe.id,
                 "user": user.nickname,
                 "title": recipe.title,
-                "main_image": recipe.main_image,
+                "main_image": recipe.main_image.url,
                 "like": Like.objects.filter(recipe_id=recipe.id).count(),
                 "like_status": like_status,
                 "book": Bookmark.objects.filter(recipe_id=recipe.id).count(),
