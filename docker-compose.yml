@@ -1,17 +1,17 @@
-version: "3"
+version: '3'
 
 services:
   ndd:
-    container_name: "ndd-server"
+    container_name: 'ndd-server'
     build:
       context: .
-    ports: 
-      - "8000:8000"
+    ports:
+      - '8000:8000'
     restart: always
     volumes:
       - ./app:/ndd/app
       - ./log/gunicorn:/log
-      - static-data:/ndd/statics
+      - ./statics:/ndd/statics
     environment:
       - DB_HOST=db
       - DB_NAME=${DB_NAME}
@@ -29,7 +29,7 @@ services:
       - db
 
   db:
-    container_name: "ndd-db"
+    container_name: 'ndd-db'
     image: postgres:latest
     restart: always
     volumes:
@@ -41,20 +41,5 @@ services:
     ports:
       - 5432:5432
 
-  proxy:
-    container_name: "ndd-proxy"
-    build:
-      context: ./proxy
-    restart: always
-    depends_on:
-      - ndd
-    ports:
-      - 80:80 #로컬에서 테스트시
-    volumes:
-      - ./app:/ndd/app
-      - ./log/nginx:/log
-      - static-data:/ndd/statics
-
 volumes:
   postgres-data:
-  static-data:
