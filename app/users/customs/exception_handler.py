@@ -19,8 +19,6 @@ def add_response_actions_by_code(response, exc):
             new_access_token,
             max_age=timedelta(days=30),
             httponly=True,
-            samesite=None,
-            secure=True,
         )
 
 
