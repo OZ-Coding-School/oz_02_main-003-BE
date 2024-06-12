@@ -29,7 +29,7 @@ urlpatterns = [
     path("/delete", UserDeleteView.as_view(), name='user_delete'),
     # 알람 설정
     #/api/v1/users/alerts/enable
-    path("/alerts/enable", AlertEnableSettingView.as_view(), name="user-alert-enable"),
+    path("/alerts/enable", AlertEnableView.as_view(), name="user-alert-enable"),
     
     ### 마이페이지 ###
     #/api/v1/users/mypage/1/3
