@@ -29,11 +29,10 @@ def update_or_create_refresh_token_data(user, token):
 
 
 import os
-import random
-import string
+import uuid
 
 def generate_image_path(user, ext, bucket_path):
-    unique_filename = f"{user.nickname}_{''.join(random.choices(string.ascii_uppercase + string.digits, k=6))}.{ext}"
+    unique_filename = f"{user.nickname}_{uuid.uuid1().hex}.{ext}"
     image_path = os.path.join(bucket_path, 'user', str(user.id), unique_filename)
-    relative_image_path = os.path.join('/user', str(user.id), unique_filename)
+    relative_image_path = os.path.join('user', str(user.id), unique_filename)
     return image_path, relative_image_path

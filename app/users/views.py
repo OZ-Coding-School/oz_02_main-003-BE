@@ -175,8 +175,10 @@ class UpdateNicknameView(APIView):
 import base64
 import os
 from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
 from .utils import generate_image_path
+from config import settings
+from botocore.exceptions import NoCredentialsError
+from config.settings import MEDIA_URL
 
 class UserImageView(APIView):
     def post(self, request):
@@ -193,22 +195,37 @@ class UserImageView(APIView):
             format, imgstr = image_data.split(";base64,")
             ext = format.split("/")[-1]
 
-            # .env 파일에서 BUCKET_PATH를 불러와서 경로 조합
-            BUCKET_PATH = os.environ.get("BUCKET_PATH", "")
+            # settings에서 BUCKET_PATH를 불러와서 경로 조합
+            BUCKET_PATH = settings.BUCKET_PATH
             image_path, relative_image_path = generate_image_path(user, ext, BUCKET_PATH)
 
             # 파일 저장
             content = base64.b64decode(imgstr)
-            default_storage.save(image_path, ContentFile(content))
+            content_file = ContentFile(content)
 
-            user, created = User.objects.get_or_create(id=user.id)
-            user.image = relative_image_path
-            user.save()
+            try:
+                settings.s3_client.upload_fileobj(
+                    content_file,
+                    settings.AWS_STORAGE_BUCKET_NAME,
+                    image_path,
+                    ExtraArgs={
+                        'ContentType': 'image/jpeg',
+                    },
+                )
 
-            return JsonResponse(
-                {"status": 200, "message": "프로필 사진 저장 완료", "image_url": relative_image_path},
-                status=status.HTTP_200_OK,
-            )
+                user_instance, created = User.objects.get_or_create(id=user.id)
+                user_instance.image = relative_image_path
+                user_instance.save()
+
+                return JsonResponse(
+                    {"status": 200, "message": "프로필 사진 저장 완료", "image_url": MEDIA_URL + relative_image_path},
+                    status=status.HTTP_200_OK,
+                )
+            except NoCredentialsError:
+                return JsonResponse(
+                    {"status": 500, "message": "AWS 자격 증명이 잘못되었습니다."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
         except Exception as e:
             return JsonResponse(
                 {"status": 500, "message": f"프로필 사진 저장 중 오류가 발생했습니다: {str(e)}"},
