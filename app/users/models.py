@@ -2,7 +2,6 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from common.models import CommonDateModel
 
-
 class UserManager(BaseUserManager):
     def create_user(self, **extra_fields):
         user = self.model(**extra_fields)
@@ -28,7 +27,7 @@ class User(AbstractBaseUser, CommonDateModel):
     gender = models.BooleanField(choices=GENDER_CHOICES, null=True, blank=True)
     age = models.PositiveIntegerField(null=True, default=None)
     nickname = models.CharField(max_length=20, unique=True, null=True, blank=True)
-    image = models.URLField(null=True, default=None, blank=True)
+    image = models.CharField(null=True, blank=True)
     is_staff = models.BooleanField(default=False, null=True, blank=True)
     is_login = models.BooleanField(default=False, null=True, blank=True)
     is_alert = models.BooleanField(default=True, null=True, blank=True)

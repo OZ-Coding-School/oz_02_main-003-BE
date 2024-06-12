@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.shortcuts import redirect
 from rest_framework import status
+from django.http import JsonResponse
 
 from .services import SocialLoginServices, SocialLoginCallbackServices
 
@@ -169,17 +170,50 @@ class UpdateNicknameView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UpdateImageView(APIView):
-    def put(self, request):
+
+
+import base64
+import os
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from .utils import generate_image_path
+
+class UserImageView(APIView):
+    def post(self, request):
         user = request.user
-        if not user:
-            return Response(
-                {"status": 404, "message": "로그인 된 유저가 아닙니다."},
-                status=status.HTTP_404_NOT_FOUND,
+
+        image_data = request.data.get("image")
+        if not image_data:
+            return JsonResponse(
+                {"status": 400, "message": "이미지 데이터가 제공되지 않았습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        return Response("프로필 사진 변경 완료")
+        try:
+            format, imgstr = image_data.split(";base64,")
+            ext = format.split("/")[-1]
 
+            # .env 파일에서 BUCKET_PATH를 불러와서 경로 조합
+            BUCKET_PATH = os.environ.get("BUCKET_PATH", "")
+            image_path, relative_image_path = generate_image_path(user, ext, BUCKET_PATH)
+
+            # 파일 저장
+            content = base64.b64decode(imgstr)
+            default_storage.save(image_path, ContentFile(content))
+
+            user, created = User.objects.get_or_create(id=user.id)
+            user.image = relative_image_path
+            user.save()
+
+            return JsonResponse(
+                {"status": 200, "message": "프로필 사진 저장 완료", "image_url": relative_image_path},
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            return JsonResponse(
+                {"status": 500, "message": f"프로필 사진 저장 중 오류가 발생했습니다: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 class MyPageView(APIView):
     def get(self, request, id, cnt):

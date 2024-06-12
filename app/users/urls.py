@@ -24,7 +24,7 @@ urlpatterns = [
     #/api/v1/users/nickname
     path("/nickname", UpdateNicknameView.as_view(), name="user-update-nickname"),
     #/api/v1/users/image
-    path("/image", UpdateImageView.as_view(), name="user-update-image"),
+    path("/image", UserImageView.as_view(), name="user-update-image"),
     #/api/v1/users/delete
     path("/delete", UserDeleteView.as_view(), name='user_delete'),
     # 알람 설정
