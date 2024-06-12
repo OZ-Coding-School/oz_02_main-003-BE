@@ -174,22 +174,13 @@ class UpdateNicknameView(APIView):
 
 import base64
 import os
-import random
-import string
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-from .models import Temp_user
 from .utils import generate_image_path
 
-class TempImageView(APIView):
+class UserImageView(APIView):
     def post(self, request):
         user = request.user
-
-        if not user:
-            return JsonResponse(
-                {"status": 404, "message": "로그인 된 유저가 아닙니다."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
 
         image_data = request.data.get("image")
         if not image_data:
@@ -210,17 +201,17 @@ class TempImageView(APIView):
             content = base64.b64decode(imgstr)
             default_storage.save(image_path, ContentFile(content))
 
-            temp_user, created = Temp_user.objects.get_or_create(user_id=user.id)
-            temp_user.image = relative_image_path
-            temp_user.save()
+            user, created = User.objects.get_or_create(id=user.id)
+            user.image = relative_image_path
+            user.save()
 
             return JsonResponse(
-                {"status": 200, "message": "임시 프로필 사진 저장 완료", "temp_image_url": relative_image_path},
+                {"status": 200, "message": "프로필 사진 저장 완료", "image_url": relative_image_path},
                 status=status.HTTP_200_OK,
             )
         except Exception as e:
             return JsonResponse(
-                {"status": 500, "message": f"임시 프로필 사진 저장 중 오류가 발생했습니다: {str(e)}"},
+                {"status": 500, "message": f"프로필 사진 저장 중 오류가 발생했습니다: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
