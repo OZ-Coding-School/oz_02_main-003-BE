@@ -41,24 +41,6 @@ services:
     ports:
       - 5432:5432
 
-  proxy:
-    container_name: 'nginx'
-    build:
-      context: ./proxy
-    restart: always
-    depends_on:
-      - ndd
-    ports:
-      - 80:80
-      - 443:443
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt
-      - ./app:/ndd/app
-      - ./log/nginx:/log
-      - static-data:/ndd/statics
-    environment:
-      - TZ=Asia/Seoul
-
 volumes:
   postgres-data:
   static-data:

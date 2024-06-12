@@ -67,7 +67,7 @@ class LoginCallbackView(APIView):
         access_token = slcs.get_access_token(user)
 
         response = Response({"status": 200, "message": "로그인 성공"})
-        redirect_uri = ["https://nddapp.duckdns.org/", "http://localhost:5173"]
+        redirect_uri = ["https://ndd.life", "http://localhost:5173"]
         response = redirect(redirect_uri[dev])
         response.set_cookie(
             key="ndd_access",
@@ -244,7 +244,9 @@ class MyPageView(APIView):
 
         try:
             # 유저의 레시피를 필터링하고 페이징 처리
-            recipes = Recipe.objects.filter(user=target_user).order_by('id')[cnt * 15:(cnt + 1) * 15]
+            recipes = Recipe.objects.filter(user=target_user).order_by("id")[
+                cnt * 15 : (cnt + 1) * 15
+            ]
 
             # cnt에 관계없이 레시피 직렬화
             recipe_serializer = RecipeSerializer(recipes, many=True)
@@ -255,33 +257,45 @@ class MyPageView(APIView):
                     "status": 200,
                     "message": "마이페이지 조회 완료",
                     "data": {
-                        "image": user_serializer.data['image'],
-                        "nickname": user_serializer.data['nickname'],
-                        "recipes": recipe_serializer.data
-                    }
+                        "image": user_serializer.data["image"],
+                        "nickname": user_serializer.data["nickname"],
+                        "recipes": recipe_serializer.data,
+                    },
                 }
             else:
                 response_data = {
                     "status": 200,
                     "message": "마이페이지 조회 완료",
-                    "data": {
-                        "recipes": recipe_serializer.data
-                    }
+                    "data": {"recipes": recipe_serializer.data},
                 }
 
             return Response(response_data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(
                 {"status": 500, "message": "알 수 없는 오류", "error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-class AlertEnableSettingView(APIView):
+
+class AlertEnableView(APIView):
+    def get(self, request):
+        user = request.user
+        if not user:
+            return Response(
+                {"status": 400, "message": "로그인 된 유저가 아닙니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        enable = User.objects.get(id=user.id).is_alert
+        return Response(
+            {"status": 200, "message": "알림여부 조회 성공", "data": {"status": 1}}
+        )
+
     def put(self, request):
         user = request.user
         if not user:
             return Response(
-                {"status": 404, "message": "로그인 된 유저가 아닙니다."},
+                {"status": 400, "message": "로그인 된 유저가 아닙니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
         enable = request.data.get("enable", False)
