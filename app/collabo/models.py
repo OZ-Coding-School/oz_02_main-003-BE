@@ -18,12 +18,7 @@ class Fridge(CommonDateModel):
 
 
 class Interaction(CommonDateModel):
-    INTERACTION_TYPE_CHOICES = [
-        (1, "Click"),
-        (2, "Favorite"),
-        (3, "Like"),
-        (4, "Comment"),
-    ]
+
 
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="user_interactions"
@@ -31,7 +26,7 @@ class Interaction(CommonDateModel):
     recipe = models.ForeignKey(
         Recipe, on_delete=models.CASCADE, related_name="recipe_interactions"
     )
-    type = models.PositiveIntegerField(choices=INTERACTION_TYPE_CHOICES)
+    type = models.CharField(max_length=255, default = 'Click')
 
     def __str__(self):
         return f"{self.get_type_display()} by {self.user} on {self.recipe}"
