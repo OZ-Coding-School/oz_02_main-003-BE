@@ -16,25 +16,43 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # env 사용 세팅
-import environ
 import os
+import environ
+import boto3
 
-
+# 환경 변수 관리
 env = environ.Env(
     DEBUG=(bool, False),
 )
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
-# Load .env file
-env = environ.Env()
-env.read_env(os.path.join(BASE_DIR, ".env"))
-
-# MEDIA_ROOT 설정
-MEDIA_ROOT = os.environ.get("BUCKET_PATH")
-
+# # MEDIA_ROOT 설정
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+SECRET_KEY = env('DJANGO_SECRET_KEY')
+
+# AWS S3 설정
+AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME')
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    region_name=AWS_S3_REGION_NAME
+)
+
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+# BUCKET_PATH 설정
+BUCKET_PATH = env('BUCKET_PATH')
+if str(os.environ.get("DEV", False)).lower() in ["true", "1"]:
+    BUCKET_PATH = "test/" + BUCKET_PATH
+
+MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/' + BUCKET_PATH
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = str(os.environ.get("DEV", False)).lower() in ["true", "1"]
@@ -57,6 +75,7 @@ LIBRARY_APPS = [
     "rest_framework_simplejwt",
     "corsheaders",
     "drf_spectacular",
+    "boto3",
 ]
 
 CUSTOM_USER_APPS = [
@@ -239,5 +258,4 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }
-
 

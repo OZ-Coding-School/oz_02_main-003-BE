@@ -100,11 +100,9 @@ class RecipeRecommendView(APIView):
         # 응답 반환
         return Response(response_data)
 
-from django.core.files.base import ContentFile
-import base64
 
 from .models import Temp_recipe, Temp_step, Unit
-
+from .utils import create_file
 
 class CreateTempImage(APIView):
     def post(self, request):
@@ -118,6 +116,7 @@ class CreateTempImage(APIView):
             if "image" in request.data:
                 image_data = request.data["image"]
                 type_data = request.data["type"]
+                order =request.data.get("order")
 
                 if type_data not in ["main", "step"]:
                     return Response(
@@ -127,14 +126,7 @@ class CreateTempImage(APIView):
                 format, imgstr = image_data.split(";base64,")
                 ext = format.split("/")[-1]
 
-                # 이미지 데이터를 Django의 File 객체로 변환
-                file_name = type_data
-                if type_data == "step":
-                    file_name += f'_{request.data["order"]}'
-
-                image_file = ContentFile(
-                    base64.b64decode(imgstr), name=f"{file_name}.{ext}"
-                )
+                image_file = create_file(type_data, ext, imgstr, order)
 
                 # Temp_recipe 객체를 먼저 저장하여 ID를 할당
                 if type_data == "main":
@@ -151,7 +143,6 @@ class CreateTempImage(APIView):
                     }
                     return Response(data, status=status.HTTP_201_CREATED)
                 else:
-                    order = request.data["order"]
                     temp_recipe = Temp_recipe.objects.filter(
                         user_id=user.id, status=1
                     ).last()
@@ -180,16 +171,15 @@ class CreateTempImage(APIView):
                     {"error": "No image data provided"}, status=status.HTTP_400_BAD_REQUEST
                 )
                    
-from django.core.files import File
 import os
-
+from .utils import copy_file
+from config.settings import BUCKET_PATH
 class CreateRecipe(APIView):
     def post(self, request):
-
         user_id = request.user.id
         if not user_id:
             return Response({"status": 400, "message": "사용자 인증이 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         try:
             temp_recipe = Temp_recipe.objects.filter(user_id=user_id, status=1).first()
 
@@ -207,38 +197,17 @@ class CreateRecipe(APIView):
             temp_recipe.save()
 
             if temp_recipe.main_image:
-                recipe.main_image.save(
-                    os.path.basename(temp_recipe.main_image.name),
-                    File(temp_recipe.main_image)
-                )
+                main_image_source = temp_recipe.main_image.name
+                main_image_dest = f'{BUCKET_PATH}recipe/{recipe.id}/{os.path.basename(main_image_source)}'
+                print(main_image_dest)
+                copy_file(main_image_source, main_image_dest)
 
-            for ingredient_data in recipe_ingredients_data:
-                ingredient_name = ingredient_data.get('name', None)
-                unit_id = ingredient_data.get('unit')
-                quantity = ingredient_data.get('quantity')
+                recipe.main_image = main_image_dest
+                recipe.save()
 
-                # 재료를 DB에서 찾거나 없으면 새로 생성
-                try:
-                    ingredient = Ingredient.objects.get(name=ingredient_name)
-                except Ingredient.DoesNotExist:
-                    # 존재하지 않는 경우 새로운 재료 생성
-                    ingredient = Ingredient.objects.create(name=ingredient_name)
-
-                # 단위 객체 가져오기
-                unit = Unit.objects.get(id=unit_id)
-
-                # RecipeIngredient 생성
-                Recipe_ingredient.objects.create(
-                    recipe=recipe,
-                    ingredient=ingredient,
-                    quantity=quantity,
-                    unit=unit
-                )
-
-            # Temp_step에서 Recipe_step으로 복사
             temp_steps = Temp_step.objects.filter(recipe=temp_recipe).order_by('order')
-
             count = 0
+
             for i, step_text in enumerate(steps_data, 1):
                 temp_image = None
                 if temp_steps and count < len(temp_steps):
@@ -248,14 +217,16 @@ class CreateRecipe(APIView):
 
                 step_data = {'recipe': recipe.id, 'step': step_text}
                 step_serializer = Recipe_stepSerializer(data=step_data)
-                    
+
                 if step_serializer.is_valid():
                     recipe_step = step_serializer.save()
                     if temp_image:
-                        recipe_step.image.save(
-                            os.path.basename(temp_image.name),
-                            File(temp_image),
-                        )
+                        temp_image_source = temp_image.name
+                        temp_image_dest = f'{BUCKET_PATH}recipe/{recipe.id}/{os.path.basename(temp_image_source)}'
+                        copy_file(temp_image_source, temp_image_dest)
+
+                        recipe_step.image = temp_image_dest
+                        recipe_step.save()
                 else:
                     print("Errors:", step_serializer.errors)
 
@@ -269,7 +240,7 @@ class CreateRecipe(APIView):
                 "data": {"id": recipe.id},
             }
             return Response(response_data, status=status.HTTP_201_CREATED)
-        
+
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
