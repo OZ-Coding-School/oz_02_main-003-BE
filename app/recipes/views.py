@@ -283,8 +283,8 @@ class RecipeDetailDeleteView(APIView):
             else:
                 can_update = 0
 
-            ingredients = Recipe_ingredient.objects.filter(recipe_id=id)
-            steps = Recipe_step.objects.filter(recipe_id=id)
+            ingredients = Recipe_ingredient.objects.filter(recipe_id=id).order_by('id')
+            steps = Recipe_step.objects.filter(recipe_id=id).order_by('id')
             comments = (
                 Comment.objects.filter(recipe_id=id)
                 .select_related("user")
