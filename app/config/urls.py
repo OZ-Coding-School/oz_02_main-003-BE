@@ -18,5 +18,4 @@ urlpatterns = [
     path("api/v1/main", include("main.urls")),
     path("api/v1/recipes", include("recipes.urls")),
     path("api/v1/users", include("users.urls")),
-    path("api/v1/status", include("alerts.urls")),
 ]
