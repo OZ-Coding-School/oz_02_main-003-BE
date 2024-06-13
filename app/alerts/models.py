@@ -13,7 +13,8 @@ class Alert(CommonDateModel):
         (3, "Bookmark"),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    target_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name= "target", default=None)
+    trigger_user =  models.ForeignKey(User, on_delete=models.CASCADE,related_name= "trigger")
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
     type = models.PositiveIntegerField(choices=CHOICES, default=1)
-    status = models.BooleanField(default=False)
+    status = models.BooleanField(default=True)

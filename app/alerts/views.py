@@ -1,31 +1,26 @@
 from django.shortcuts import render
-from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from alerts.models import Alert
-from users.models import User
+from .models import Alert
 from .serializers import AlertSerializer
-
+from datetime import timedelta
+from django.utils import timezone
 
 class UserAlertsView(APIView):
-    def get(self, request, user_id):
+    def get(self, request):
         user = request.user
+        
         if not user:
             return Response(
                 {"status": 404, "message": "로그인 된 유저가 아닙니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
-        if user.id != user_id:
-            return Response(
-                {"status": 403, "message": "권한이 없습니다."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        alerts = Alert.objects.filter(user=user).order_by("-created_at")
+            
+        two_weeks_ago = timezone.now() - timedelta(weeks=2)
+        alerts = Alert.objects.filter(target_user=user).exclude(status=0, created_at__lt=two_weeks_ago).order_by("-created_at")
+        
         serializer = AlertSerializer(alerts, many=True)
-
         return Response(
             {
                 "status": 200,
@@ -35,39 +30,63 @@ class UserAlertsView(APIView):
             status=status.HTTP_200_OK,
         )
 
+    def post(self, request):
+        user = request.user
+        if not user:
+            return Response(
+                {"status": 400, "message": "로그인 된 유저가 아닙니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        alerts = request.data.get("alerts")
+
+        if not alerts:
+            return Response(
+                {"status": 400, "message": "알림 데이터를 넣어주시기 바랍니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        for alert_id in alerts:
+            try:
+                alert_obj = Alert.objects.get(id=alert_id, target_user=user)
+                alert_obj.status = False  # 알림을 읽음으로 표시
+                alert_obj.save()
+            except Alert.DoesNotExist:
+                return Response(
+                    {
+                        "status": 400,
+                        "message": f"ID가 {alert_id}인 알림은 유저의 알림이 아닙니다.",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        return Response(
+            {"status": 200, "message": "알림 확인 처리 완료"}, status=status.HTTP_200_OK
+        )
+
 
 class UnreadUserAlertsView(APIView):
     def get(self, request):
         user = request.user
+
         if not user:
             return Response(
                 {"status": 404, "message": "로그인 된 유저가 아닙니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # 사용자에게 온 모든 읽지 않은 알림 가져오기
-        unread_alerts = Alert.objects.filter(user=user, status=1)
-
+        # 현재 로그인한 사용자에게 도착한 읽지 않은 알림들 가져오기
+        unread_alerts = Alert.objects.filter(target_user=user, status=True)
+        alert_status = False
         if unread_alerts.exists():
-            # 사용자에게 온 모든 읽지 않은 알림을 시리얼라이즈하여 반환
-            serializer = AlertSerializer(unread_alerts, many=True)
-            # status가 True인 레시피의 id와 status 필드를 선택하여 반환
-            unread_alerts_data = [
-                {"recipe_id": item["recipe_id"], "status": item["status"]}
-                for item in serializer.data
-                if item["status"]
-            ]
-            return Response(
-                {
-                    "status": 200,
-                    "message": "읽지 않은 알림이 존재합니다.",
-                    "data": unread_alerts_data,
-                },
-                status=200,
-            )
-        else:
-            # 읽지 않은 알림이 없으면, 알림이 존재하지 않음을 반환
-            return Response(
-                {"status": 404, "message": "읽지 않은 알림이 존재하지 않습니다."},
-                status=404,
-            )
+            alert_status = True
+            # 읽지 않은 알림이 존재할 경우
+        return Response(
+            {
+                "status": 200,
+                "message": "읽지 않은 알림 조회 완료.",
+                "data": {"status": alert_status},
+            },
+            status=status.HTTP_200_OK,
+        )
+

@@ -6,8 +6,8 @@ class AlertSerializer(serializers.ModelSerializer):
     title = serializers.CharField(source='recipe.title') 
     
     def get_nickname(self, obj):
-        return obj.user.nickname  
+        return obj.trigger_user.nickname  
     
     class Meta:
         model = Alert
-        fields = ['recipe_id','nickname', 'title', 'type', 'status', 'created_at']
+        fields = ['id','recipe_id','nickname', 'title', 'type', 'status', 'created_at']
