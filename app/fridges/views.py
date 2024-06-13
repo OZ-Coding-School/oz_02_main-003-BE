@@ -10,7 +10,7 @@ User = get_user_model()
 
 
 class FridgeView(APIView):
-    def get(self, request, user_id):
+    def get(self, request):
         user = request.user
         if not user:
             return Response(
