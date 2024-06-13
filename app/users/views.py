@@ -185,6 +185,16 @@ class UserImageView(APIView):
         user = request.user
 
         image_data = request.data.get("image")
+        if image_data == "":
+            user_instance, created = User.objects.get_or_create(id=user.id)
+            user_instance.image = ""
+            user_instance.save()
+
+            return JsonResponse(
+                {"status": 200, "message": "이미지 데이터가 빈 문자열입니다.", "image_url": ""},
+                status=status.HTTP_200_OK,
+            )
+
         if not image_data:
             return JsonResponse(
                 {"status": 400, "message": "이미지 데이터가 제공되지 않았습니다."},
