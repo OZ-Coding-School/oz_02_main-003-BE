@@ -7,6 +7,7 @@ from .serializers import AlertSerializer
 from datetime import timedelta
 from django.utils import timezone
 
+
 class UserAlertsView(APIView):
     def get(self, request):
         user = request.user
@@ -89,4 +90,3 @@ class UnreadUserAlertsView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-
