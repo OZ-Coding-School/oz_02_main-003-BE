@@ -354,7 +354,7 @@ class RecipeDetailDeleteView(APIView):
                     "user": {
                         "id": recipe.user.id,
                         "nickname": recipe.user.nickname,
-                        "profile_image": recipe.user.image,
+                        "profile_image": MEDIA_URL + recipe.user.image,
                         "date": recipe.updated_at,
                     },
                     
