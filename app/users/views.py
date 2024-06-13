@@ -118,11 +118,7 @@ class UserView(APIView):
 
         for recipe in recipes:
             recipe_data.append(
-                {
-                    "id": recipe.id,
-                    "title": recipe.title,
-                    # "image": recipe.main_image
-                }
+                {"id": recipe.id, "title": recipe.title, "image": recipe.main_image.url}
             )
 
         serializer = UserSerializer(user)
@@ -173,7 +169,7 @@ class UpdateNicknameView(APIView):
 import base64
 import os
 from django.core.files.base import ContentFile
-from .utils import generate_image_path
+from .utils import generate_image_path, upload_image
 from config import settings
 from botocore.exceptions import NoCredentialsError
 from config.settings import MEDIA_URL
@@ -182,15 +178,23 @@ from config.settings import MEDIA_URL
 class UserImageView(APIView):
     def post(self, request):
         user = request.user
+        if not user:
+            return Response(
+                {"status": 404, "message": "로그인 된 유저가 아닙니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         image_data = request.data.get("image")
         if image_data == "":
-            user_instance, created = User.objects.get_or_create(id=user.id)
-            user_instance.image = ""
-            user_instance.save()
+            user.image = ""
+            user.save()
 
             return JsonResponse(
-                {"status": 200, "message": "이미지 데이터가 빈 문자열입니다.", "image_url": ""},
+                {
+                    "status": 200,
+                    "message": "이미지 데이터가 빈 문자열입니다.",
+                    "image_url": "",
+                },
                 status=status.HTTP_200_OK,
             )
 
@@ -205,28 +209,15 @@ class UserImageView(APIView):
             ext = format.split("/")[-1]
 
             # settings에서 BUCKET_PATH를 불러와서 경로 조합
-            BUCKET_PATH = settings.BUCKET_PATH
-            image_path, relative_image_path = generate_image_path(
-                user, ext, BUCKET_PATH
-            )
+            image_path, relative_image_path = generate_image_path(user, ext)
 
             # 파일 저장
             content = base64.b64decode(imgstr)
             content_file = ContentFile(content)
 
-            try:
-                settings.s3_client.upload_fileobj(
-                    content_file,
-                    settings.AWS_STORAGE_BUCKET_NAME,
-                    image_path,
-                    ExtraArgs={
-                        "ContentType": "image/jpeg",
-                    },
-                )
-
-                user_instance, created = User.objects.get_or_create(id=user.id)
-                user_instance.image = relative_image_path
-                user_instance.save()
+            if upload_image(content_file, image_path):
+                user.image = relative_image_path
+                user.save()
 
                 return JsonResponse(
                     {
@@ -236,7 +227,7 @@ class UserImageView(APIView):
                     },
                     status=status.HTTP_200_OK,
                 )
-            except NoCredentialsError:
+            else:
                 return JsonResponse(
                     {"status": 500, "message": "AWS 자격 증명이 잘못되었습니다."},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,

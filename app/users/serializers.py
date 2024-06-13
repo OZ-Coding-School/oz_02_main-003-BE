@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import User
+from config import settings
 from recipes.models import Recipe
+
 
 class UserDetailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,11 +18,19 @@ class UserNicknameSerializer(serializers.ModelSerializer):
         if User.objects.filter(nickname=value).exists():
             raise serializers.ValidationError("이미 존재하는 닉네임입니다.")
         return value
-        
+
 class UserSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = ['id', 'nickname', 'image']
+
+    def get_image(self, obj):
+        if obj.image:
+            return f"{settings.MEDIA_URL}{obj.image}"
+        else:
+            return None
         
 class RecipeSerializer(serializers.ModelSerializer):
     class Meta:
