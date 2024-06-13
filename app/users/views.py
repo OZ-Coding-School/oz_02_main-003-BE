@@ -263,7 +263,7 @@ class MyPageView(APIView):
         try:
             total_recipes_count = Recipe.objects.filter(user=target_user).count()
             # 유저의 레시피를 필터링하고 페이징 처리
-            recipes = Recipe.objects.filter(user=target_user).order_by("id")[
+            recipes = Recipe.objects.filter(user=target_user).order_by("-id")[
                 cnt * 15 : (cnt + 1) * 15
             ]
 

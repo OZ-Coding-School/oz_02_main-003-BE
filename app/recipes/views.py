@@ -109,68 +109,59 @@ class CreateTempImage(APIView):
         user = request.user
 
         if not user.is_authenticated:
-            return Response({"status": "400", "message": "토큰이 없습니다"}, 400)
+            return Response({"status": "400", "message": "토큰이 없습니다"}, status=status.HTTP_400_BAD_REQUEST)
 
         actions = request.data.get("action")
-        if actions == "write":
-            if "image" in request.data:
-                image_data = request.data["image"]
-                type_data = request.data["type"]
-                order =request.data.get("order")
+        if actions != "write":
+            return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
 
-                if type_data not in ["main", "step"]:
-                    return Response(
-                        {"error": "Invalid type"}, status=status.HTTP_400_BAD_REQUEST
-                    )
+        if "image" not in request.data:
+            return Response({"error": "No image data provided"}, status=status.HTTP_400_BAD_REQUEST)
 
-                format, imgstr = image_data.split(";base64,")
-                ext = format.split("/")[-1]
+        image_data = request.data["image"]
+        type_data = request.data.get("type")
+        order = request.data.get("order")
 
-                image_file = create_file(type_data, ext, imgstr, order)
-                
-                # Temp_recipe 객체를 먼저 저장하여 ID를 할당
-                if type_data == "main":
-                    temp_recipe, _ = Temp_recipe.objects.get_or_create(
-                        user_id=user.id, status=1
-                    )  # 객체 생성 및 저장
-                    temp_recipe.main_image = image_file  # 이미지 파일 할당
-                    temp_recipe.save()  # 다시 저장하여 파일을 저장
+        if type_data not in ["main", "step"]:
+            return Response({"error": "Invalid type"}, status=status.HTTP_400_BAD_REQUEST)
 
-                    data = {
-                        "status": 201,
-                        "message": "임시 레시피 이미지 저장 성공",
-                        "data": {"id": temp_recipe.id, "image": temp_recipe.main_image.url},
-                    }
-                    return Response(data, status=status.HTTP_201_CREATED)
-                else:
-                    temp_recipe = Temp_recipe.objects.filter(
-                        user_id=user.id, status=1
-                    ).last()
+        format, imgstr = image_data.split(";base64,")
+        ext = format.split("/")[-1]
 
-                    if not temp_recipe:
-                        return Response(
-                            {"error": "유효한 Temp_recipe를 찾을 수 없습니다."},
-                            status=status.HTTP_404_NOT_FOUND
-                        )
+        try:
+            image_file = create_file(type_data, ext, imgstr, order)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-                    # Temp_step 객체를 먼저 생성하여 ID를 할당하고 Temp_recipe와 연결
-                    temp_step, _ = Temp_step.objects.get_or_create(
-                        recipe=temp_recipe, order=order
-                    )
-                    temp_step.image = image_file
-                    temp_step.save()
+        if type_data == "main":
+            temp_recipe, _ = Temp_recipe.objects.get_or_create(user_id=user.id, status=1)
+            temp_recipe.main_image = image_file
+            temp_recipe.save()
 
-                    data = {
-                        "status": 201,
-                        "message": "임시 레시피 이미지 저장 성공",
-                        "data": {"id": temp_step.id, "image": temp_step.image.url},
-                    }
-                    return Response(data, status=status.HTTP_201_CREATED)
-            else:
-                return Response(
-                    {"error": "No image data provided"}, status=status.HTTP_400_BAD_REQUEST
-                )
-                   
+            data = {
+                "status": 201,
+                "message": "임시 레시피 이미지 저장 성공",
+                "data": {"id": temp_recipe.id, "image": temp_recipe.main_image.url},
+            }
+            return Response(data, status=status.HTTP_201_CREATED)
+        else:
+            temp_recipe = Temp_recipe.objects.filter(user_id=user.id, status=1).last()
+
+            if not temp_recipe:
+                return Response({"error": "유효한 Temp_recipe를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+            temp_step, _ = Temp_step.objects.get_or_create(recipe=temp_recipe, order=order)
+            temp_step.image = image_file
+            temp_step.save()
+
+            data = {
+                "status": 201,
+                "message": "임시 레시피 이미지 저장 성공",
+                "data": {"id": temp_step.id, "image": temp_step.image.url},
+            }
+            return Response(data, status=status.HTTP_201_CREATED)
+        
+        
 import os
 from .utils import copy_file
 from config.settings import BUCKET_PATH
@@ -509,9 +500,8 @@ class RecipeSearchKeywordView(APIView):
 from django.db.models import F
 
 class RecipeStep(APIView):
-    def delete(self, request):
+    def delete(self, request, order):
         user_id = request.user.id
-        order = request.data.get("order")
 
         try:
             # 사용자의 임시 레시피에서 order 값이 일치하는 레코드 찾기
