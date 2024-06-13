@@ -268,7 +268,7 @@ class CreateRecipe(APIView):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
+from config.settings import MEDIA_URL
 class RecipeDetailDeleteView(APIView):
     def get(self, request, id):
         try:
@@ -333,7 +333,7 @@ class RecipeDetailDeleteView(APIView):
                         "id": comment["id"],
                         "user_id": comment["user__id"],
                         "user_nickname": comment["user__nickname"],
-                        "profile_image": comment["user__image"],
+                        "profile_image": MEDIA_URL + comment["user__image"],
                         "updated_at": comment["updated_at"],
                         "comment": comment["comment"],
                         "can_update": comment_can_update,

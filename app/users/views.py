@@ -276,7 +276,7 @@ class MyPageView(APIView):
                     "status": 200,
                     "message": "마이페이지 조회 완료",
                     "data": {
-                        "image": user_serializer.data["image"],
+                        "image": MEDIA_URL + user_serializer.data["image"],
                         "total_recipes_count": total_recipes_count,
                         "nickname": user_serializer.data["nickname"],
                         "recipes": recipe_serializer.data,
