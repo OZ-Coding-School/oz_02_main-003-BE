@@ -121,7 +121,7 @@ class UserView(APIView):
                 {
                     "id": recipe.id,
                     "title": recipe.title,
-                    # "image": recipe.main_image
+                    "image": recipe.main_image.url
                 }
             )
 

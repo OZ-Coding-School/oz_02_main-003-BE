@@ -196,10 +196,33 @@ class CreateRecipe(APIView):
             temp_recipe.recipe = recipe
             temp_recipe.save()
 
+            # recipe_ingredients 데이터 처리
+            for ingredient_data in recipe_ingredients_data:
+                ingredient_name = ingredient_data.get('name', None)
+                unit_id = ingredient_data.get('unit')
+                quantity = ingredient_data.get('quantity')
+
+                # 재료를 DB에서 찾거나 없으면 새로 생성
+                try:
+                    ingredient = Ingredient.objects.get(name=ingredient_name)
+                except Ingredient.DoesNotExist:
+                    # 존재하지 않는 경우 새로운 재료 생성
+                    ingredient = Ingredient.objects.create(name=ingredient_name)
+
+                # 단위 객체 가져오기
+                unit = Unit.objects.get(id=unit_id)
+
+                # RecipeIngredient 생성
+                Recipe_ingredient.objects.create(
+                    recipe=recipe,
+                    ingredient=ingredient,
+                    quantity=quantity,
+                    unit=unit
+                )
+
             if temp_recipe.main_image:
                 main_image_source = temp_recipe.main_image.name
                 main_image_dest = f'{BUCKET_PATH}recipe/{recipe.id}/{os.path.basename(main_image_source)}'
-                print(main_image_dest)
                 copy_file(main_image_source, main_image_dest)
 
                 recipe.main_image = main_image_dest
