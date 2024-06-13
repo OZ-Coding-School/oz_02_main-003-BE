@@ -14,6 +14,6 @@ urlpatterns = [
     path("/search/<str:keyword>", RecipeSearchKeywordView.as_view(), name="keyword-recipe"),
     # /api/v1/recipes/recommend
     path("/recommend", RecipeRecommendView.as_view(), name="recommend-recipe"),
-    # /api/v1/recipes/step
-    path("/step", RecipeStep.as_view(), name="recipe-step-minus")
+    # /api/v1/recipes/step/<int:order>
+    path("/step/<int:order>", RecipeStep.as_view(), name="recipe-step-delete")
 ]
