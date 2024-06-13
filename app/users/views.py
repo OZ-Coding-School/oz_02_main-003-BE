@@ -206,8 +206,7 @@ class UserImageView(APIView):
             ext = format.split("/")[-1]
 
             # settings에서 BUCKET_PATH를 불러와서 경로 조합
-            BUCKET_PATH = settings.BUCKET_PATH
-            image_path, relative_image_path = generate_image_path(user, ext, BUCKET_PATH)
+            image_path, relative_image_path = generate_image_path(user, ext)
 
             # 파일 저장
             content = base64.b64decode(imgstr)
@@ -223,7 +222,7 @@ class UserImageView(APIView):
                     },
                 )
 
-                user_instance, created = User.objects.get_or_create(id=user.id)
+                user_instance = User.objects.get(id=user.id)
                 user_instance.image = relative_image_path
                 user_instance.save()
 

@@ -109,7 +109,7 @@ class SocialLoginCallbackServices:
                 user = get_or_create_social_user(
                     type=self.type,
                     id=self.get_user_data(user_info, "id"),
-                    image=self.get_user_data(user_info, "image"),
+                    image_url=self.get_user_data(user_info, "image"),
                 )
 
                 return user
