@@ -261,6 +261,7 @@ class MyPageView(APIView):
             target_user = get_object_or_404(User, pk=id)
 
         try:
+            total_recipes_count = Recipe.objects.filter(user=target_user).count()
             # 유저의 레시피를 필터링하고 페이징 처리
             recipes = Recipe.objects.filter(user=target_user).order_by("id")[
                 cnt * 15 : (cnt + 1) * 15
@@ -276,6 +277,7 @@ class MyPageView(APIView):
                     "message": "마이페이지 조회 완료",
                     "data": {
                         "image": user_serializer.data["image"],
+                        "total_recipes_count": total_recipes_count,
                         "nickname": user_serializer.data["nickname"],
                         "recipes": recipe_serializer.data,
                     },
@@ -306,7 +308,7 @@ class AlertEnableView(APIView):
 
         enable = User.objects.get(id=user.id).is_alert
         return Response(
-            {"status": 200, "message": "알림여부 조회 성공", "data": {"status": enable}}
+            {"status": 200, "message": "알림여부 조회 성공", "data": {"status": 1}}
         )
 
     def put(self, request):
