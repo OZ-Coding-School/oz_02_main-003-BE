@@ -9,6 +9,8 @@ from users.models import User
 
 class LikeToggleView(APIView):
     def post(self, request):
+        # user_id = request.data.get("user")
+        # user = User.objects.get(id=user_id)
         user = request.user
         if not user:
             return Response(
