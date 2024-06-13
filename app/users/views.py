@@ -118,11 +118,7 @@ class UserView(APIView):
 
         for recipe in recipes:
             recipe_data.append(
-                {
-                    "id": recipe.id,
-                    "title": recipe.title,
-                    "image": recipe.main_image.url
-                }
+                {"id": recipe.id, "title": recipe.title, "image": recipe.main_image.url}
             )
 
         serializer = UserSerializer(user)
@@ -170,15 +166,14 @@ class UpdateNicknameView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-
 import base64
 import os
 from django.core.files.base import ContentFile
-from .utils import generate_image_path
+from .utils import generate_image_path, upload_image
 from config import settings
 from botocore.exceptions import NoCredentialsError
 from config.settings import MEDIA_URL
+
 
 class UserImageView(APIView):
     def post(self, request):
@@ -191,7 +186,11 @@ class UserImageView(APIView):
             user_instance.save()
 
             return JsonResponse(
-                {"status": 200, "message": "이미지 데이터가 빈 문자열입니다.", "image_url": ""},
+                {
+                    "status": 200,
+                    "message": "이미지 데이터가 빈 문자열입니다.",
+                    "image_url": "",
+                },
                 status=status.HTTP_200_OK,
             )
 
@@ -212,34 +211,34 @@ class UserImageView(APIView):
             content = base64.b64decode(imgstr)
             content_file = ContentFile(content)
 
-            try:
-                settings.s3_client.upload_fileobj(
-                    content_file,
-                    settings.AWS_STORAGE_BUCKET_NAME,
-                    image_path,
-                    ExtraArgs={
-                        'ContentType': 'image/jpeg',
-                    },
-                )
+            if upload_image(content_file, image_path):
 
                 user_instance = User.objects.get(id=user.id)
                 user_instance.image = relative_image_path
                 user_instance.save()
 
                 return JsonResponse(
-                    {"status": 200, "message": "프로필 사진 저장 완료", "image_url": MEDIA_URL + relative_image_path},
+                    {
+                        "status": 200,
+                        "message": "프로필 사진 저장 완료",
+                        "image_url": MEDIA_URL + relative_image_path,
+                    },
                     status=status.HTTP_200_OK,
                 )
-            except NoCredentialsError:
+            else:
                 return JsonResponse(
                     {"status": 500, "message": "AWS 자격 증명이 잘못되었습니다."},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
         except Exception as e:
             return JsonResponse(
-                {"status": 500, "message": f"프로필 사진 저장 중 오류가 발생했습니다: {str(e)}"},
+                {
+                    "status": 500,
+                    "message": f"프로필 사진 저장 중 오류가 발생했습니다: {str(e)}",
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
 
 class MyPageView(APIView):
     def get(self, request, id, cnt):
