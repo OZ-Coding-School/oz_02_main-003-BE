@@ -178,12 +178,16 @@ from config.settings import MEDIA_URL
 class UserImageView(APIView):
     def post(self, request):
         user = request.user
+        if not user:
+            return Response(
+                {"status": 404, "message": "로그인 된 유저가 아닙니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         image_data = request.data.get("image")
         if image_data == "":
-            user_instance, created = User.objects.get_or_create(id=user.id)
-            user_instance.image = ""
-            user_instance.save()
+            user.image = ""
+            user.save()
 
             return JsonResponse(
                 {
@@ -212,10 +216,8 @@ class UserImageView(APIView):
             content_file = ContentFile(content)
 
             if upload_image(content_file, image_path):
-
-                user_instance = User.objects.get(id=user.id)
-                user_instance.image = relative_image_path
-                user_instance.save()
+                user.image = relative_image_path
+                user.save()
 
                 return JsonResponse(
                     {
