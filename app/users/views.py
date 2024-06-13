@@ -170,8 +170,6 @@ class UpdateNicknameView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-
 import base64
 import os
 from django.core.files.base import ContentFile
@@ -179,6 +177,7 @@ from .utils import generate_image_path
 from config import settings
 from botocore.exceptions import NoCredentialsError
 from config.settings import MEDIA_URL
+
 
 class UserImageView(APIView):
     def post(self, request):
@@ -207,7 +206,9 @@ class UserImageView(APIView):
 
             # settings에서 BUCKET_PATH를 불러와서 경로 조합
             BUCKET_PATH = settings.BUCKET_PATH
-            image_path, relative_image_path = generate_image_path(user, ext, BUCKET_PATH)
+            image_path, relative_image_path = generate_image_path(
+                user, ext, BUCKET_PATH
+            )
 
             # 파일 저장
             content = base64.b64decode(imgstr)
@@ -219,7 +220,7 @@ class UserImageView(APIView):
                     settings.AWS_STORAGE_BUCKET_NAME,
                     image_path,
                     ExtraArgs={
-                        'ContentType': 'image/jpeg',
+                        "ContentType": "image/jpeg",
                     },
                 )
 
@@ -228,7 +229,11 @@ class UserImageView(APIView):
                 user_instance.save()
 
                 return JsonResponse(
-                    {"status": 200, "message": "프로필 사진 저장 완료", "image_url": MEDIA_URL + relative_image_path},
+                    {
+                        "status": 200,
+                        "message": "프로필 사진 저장 완료",
+                        "image_url": MEDIA_URL + relative_image_path,
+                    },
                     status=status.HTTP_200_OK,
                 )
             except NoCredentialsError:
@@ -238,9 +243,13 @@ class UserImageView(APIView):
                 )
         except Exception as e:
             return JsonResponse(
-                {"status": 500, "message": f"프로필 사진 저장 중 오류가 발생했습니다: {str(e)}"},
+                {
+                    "status": 500,
+                    "message": f"프로필 사진 저장 중 오류가 발생했습니다: {str(e)}",
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
 
 class MyPageView(APIView):
     def get(self, request, id, cnt):
@@ -261,6 +270,7 @@ class MyPageView(APIView):
             target_user = get_object_or_404(User, pk=id)
 
         try:
+            total_recipes_count = Recipe.objects.filter(user=target_user).count()
             # 유저의 레시피를 필터링하고 페이징 처리
             recipes = Recipe.objects.filter(user=target_user).order_by("id")[
                 cnt * 15 : (cnt + 1) * 15
@@ -276,6 +286,7 @@ class MyPageView(APIView):
                     "message": "마이페이지 조회 완료",
                     "data": {
                         "image": user_serializer.data["image"],
+                        "total_recipes_count": total_recipes_count,
                         "nickname": user_serializer.data["nickname"],
                         "recipes": recipe_serializer.data,
                     },
@@ -306,7 +317,7 @@ class AlertEnableView(APIView):
 
         enable = User.objects.get(id=user.id).is_alert
         return Response(
-            {"status": 200, "message": "알림여부 조회 성공", "data": {"status": enable}}
+            {"status": 200, "message": "알림여부 조회 성공", "data": {"status": 1}}
         )
 
     def put(self, request):

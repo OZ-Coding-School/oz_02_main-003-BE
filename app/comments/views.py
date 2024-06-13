@@ -17,13 +17,10 @@ class CommentView(APIView):
             )
 
         data = request.data
-
-        user_id = data.get("user")
         recipe_id = data.get("recipe")
         comment_text = data.get("comment")
 
         try:
-            user = User.objects.get(pk=user_id)
             recipe = Recipe.objects.get(pk=recipe_id)
         except User.DoesNotExist:
             return Response(
@@ -37,7 +34,6 @@ class CommentView(APIView):
         return Response(
             {
                 "comment_id": comment.id,
-                "user_id": user_id,
                 "recipe_id": recipe_id,
                 "comment": comment_text,
             },
@@ -45,10 +41,15 @@ class CommentView(APIView):
         )
 
     def put(self, request):
+        user = request.user
+        if not user:
+            return Response(
+                {"status": 404, "message": "로그인 된 유저가 아닙니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         data = request.data
 
         comment_id = data.get("id")
-        user_id = data.get("user")
         recipe_id = data.get("recipe")
         comment_text = data.get("comment")
 
@@ -57,13 +58,6 @@ class CommentView(APIView):
         except Comment.DoesNotExist:
             return Response(
                 {"error": "Comment not found"}, status=status.HTTP_404_NOT_FOUND
-            )
-
-        try:
-            user = User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            return Response(
-                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
         try:
@@ -81,7 +75,6 @@ class CommentView(APIView):
         return Response(
             {
                 "comment_id": comment.id,
-                "user_id": user_id,
                 "recipe_id": recipe_id,
                 "comment": comment_text,
             },
@@ -89,35 +82,20 @@ class CommentView(APIView):
         )
 
     def delete(self, request):
+        user = request.user
+        if not user:
+            return Response(
+                {"status": 404, "message": "로그인 된 유저가 아닙니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        data = request.data
         # 요청에서 comment_id와 user_id 가져오기
         comment_id = request.data.get("comment_id")
-        user_id = request.data.get("user_id")
 
         # comment_id가 제공되지 않은 경우
         if not comment_id:
             return Response(
                 {"error": "comment_id is required"}, status=status.HTTP_400_BAD_REQUEST
-            )
-        # user_id가 제공되지 않은 경우
-        if not user_id:
-            return Response(
-                {"error": "user_id is required"}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            # 주어진 user_id로 사용자 조회
-            user = User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            # 주어진 user_id에 해당하는 사용자가 없는 경우,
-            return Response(
-                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
-            )
-
-        # 사용자가 관리자(is_staff=True)인지 확인
-        if not user.is_staff:
-            # 사용자가 관리자가 아니면 권한 거부 메시지 반환
-            return Response(
-                {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
             )
 
         try:
@@ -127,6 +105,13 @@ class CommentView(APIView):
             # 주어진 comment_id에 해당하는 댓글이 없는 경우,
             return Response(
                 {"error": "Comment not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+            
+        # 사용자가 관리자(is_staff=True)인지 확인 댓글 본인인지 확인
+        if not user.is_staff and comment.user.id != user.id:
+            # 사용자가 관리자가 아니면 권한 거부 메시지 반환
+            return Response(
+                {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
             )
 
         # 관리자 확인 후 댓글 삭제
