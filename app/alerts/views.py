@@ -30,7 +30,8 @@ class UserAlertsView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-
+    
+    
     def post(self, request):
         user = request.user
         if not user:
@@ -47,11 +48,14 @@ class UserAlertsView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        recipe_ids = []
+
         for alert_id in alerts:
             try:
                 alert_obj = Alert.objects.get(id=alert_id, target_user=user)
                 alert_obj.status = False  # 알림을 읽음으로 표시
                 alert_obj.save()
+                recipe_ids.append(alert_obj.recipe_id)
             except Alert.DoesNotExist:
                 return Response(
                     {
@@ -62,7 +66,8 @@ class UserAlertsView(APIView):
                 )
 
         return Response(
-            {"status": 200, "message": "알림 확인 처리 완료"}, status=status.HTTP_200_OK
+            {"status": 200, "message": "알림 확인 처리 완료", "data": recipe_ids}, 
+            status=status.HTTP_200_OK
         )
 
 
