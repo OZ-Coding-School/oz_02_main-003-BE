@@ -127,7 +127,7 @@ class CreateTempImage(APIView):
                 ext = format.split("/")[-1]
 
                 image_file = create_file(type_data, ext, imgstr, order)
-
+                
                 # Temp_recipe 객체를 먼저 저장하여 ID를 할당
                 if type_data == "main":
                     temp_recipe, _ = Temp_recipe.objects.get_or_create(
@@ -504,4 +504,29 @@ class RecipeSearchKeywordView(APIView):
             "data": recipe_data,
         }
         return Response(response_data, status=status.HTTP_200_OK)
+    
+
+from django.db.models import F
+
+class RecipeStep(APIView):
+    def delete(self, request):
+        user_id = request.user.id
+        order = request.data.get("order")
+
+        try:
+            # 사용자의 임시 레시피에서 order 값이 일치하는 레코드 찾기
+            temp_recipe = Temp_recipe.objects.filter(user_id=user_id, status=1).first()
+            if not temp_recipe:
+                return Response({"error": "Temporary recipe not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            temp_step = Temp_step.objects.filter(recipe=temp_recipe, order=order).first()
+            if temp_step:
+                temp_step.delete()
+
+            Temp_step.objects.filter(recipe=temp_recipe, order__gt=order).update(order=F('order') - 1)
+
+            return Response({"status": 200, "message": "레시피 단계가 삭제되었습니다."}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
