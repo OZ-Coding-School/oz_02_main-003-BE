@@ -24,7 +24,7 @@ def get_users(instance):
 def create_alert_on_like(sender, instance, created, **kwargs):
     if created:
         target_user, trigger_user = get_users(instance)
-        if(target_user != trigger_user):
+        if(target_user != trigger_user) and target_user.is_alert:
             create_alert(1, instance.recipe, target_user, trigger_user)
 
 
@@ -32,7 +32,7 @@ def create_alert_on_like(sender, instance, created, **kwargs):
 def create_alert_on_comment(sender, instance, created, **kwargs):
     if created:
         target_user, trigger_user = get_users(instance)
-        if(target_user != trigger_user):
+        if(target_user != trigger_user) and target_user.is_alert:
             create_alert(2, instance.recipe, target_user, trigger_user)
 
 
@@ -40,5 +40,5 @@ def create_alert_on_comment(sender, instance, created, **kwargs):
 def create_alert_on_bookmark(sender, instance, created, **kwargs):
     if created:
         target_user, trigger_user = get_users(instance)
-        if(target_user != trigger_user):
+        if(target_user != trigger_user) and target_user.is_alert:
             create_alert(3, instance.recipe, target_user, trigger_user)
