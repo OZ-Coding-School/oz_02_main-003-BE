@@ -260,6 +260,8 @@ class CreateRecipe(APIView):
 
 
 from config.settings import MEDIA_URL
+from collabo.utils.interaction_utils import create_interaction
+
 class RecipeDetailDeleteView(APIView):
     def get(self, request, id):
         try:
@@ -268,10 +270,10 @@ class RecipeDetailDeleteView(APIView):
             likes_count = Like.objects.filter(recipe_id=id).count()
 
             # 테스트용 user_id 하드코딩
-            user_id = request.user.id
+            user = request.user
 
             like_status = (
-                Like.objects.filter(recipe_id=id, user_id=user_id)
+                Like.objects.filter(recipe_id=id, user_id=user.id)
                 .values_list("id", flat=True)
                 .first()
             )
@@ -281,7 +283,7 @@ class RecipeDetailDeleteView(APIView):
                 like_status = -1
 
             bookmark_status = (
-                Bookmark.objects.filter(recipe_id=id, user_id=user_id)
+                Bookmark.objects.filter(recipe_id=id, user_id=user.id)
                 .values_list("id", flat=True)
                 .first()
             )
@@ -291,7 +293,7 @@ class RecipeDetailDeleteView(APIView):
                 bookmark_status = -1
 
             # is_staff 값이 True이거나 user_id가 본인이면 canUpdate를 1로 설정
-            user = User.objects.get(id=user_id)
+            user = User.objects.get(id=user.id)
             if user.is_staff or user.id == recipe.user.id:
                 can_update = 1
             else:
@@ -315,7 +317,7 @@ class RecipeDetailDeleteView(APIView):
             # 각 댓글의 can_update 값 설정
             comment_data = []
             for comment in comments:
-                if user.is_staff or comment["user__id"] == user_id:
+                if user.is_staff or comment["user__id"] == user.id:
                     comment_can_update = 1
                 else:
                     comment_can_update = 0
@@ -364,6 +366,9 @@ class RecipeDetailDeleteView(APIView):
                     "comments": comment_data,
                 },
             }
+
+            create_interaction(user, recipe)
+
             return Response(data)
         except Recipe.DoesNotExist:
             return Response(
