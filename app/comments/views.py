@@ -41,8 +41,6 @@ class CommentView(APIView):
         )
 
     def put(self, request):
-        user_id = request.data.get("user")
-        user = User.objects.get(id=user_id)
         user = request.user
         if not user:
             return Response(
@@ -60,6 +58,12 @@ class CommentView(APIView):
         except Comment.DoesNotExist:
             return Response(
                 {"error": "Comment not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if comment.user != user:
+            return Response(
+                {"error": "You are not authorized to update this comment."},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         try:
