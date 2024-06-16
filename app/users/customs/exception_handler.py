@@ -14,11 +14,13 @@ def add_response_actions_by_code(response, exc):
 
     if code in [-401]:
         new_access_token = str(TokenManager.get_new_access_token(exc.data["user_id"]))
+        print(exc.data["host"])
         response.set_cookie(
             ACCESS_TOKEN_COOKIE_NAME,
             new_access_token,
             max_age=timedelta(days=30),
             httponly=True,
+            domain=f".{exc.data["host"]}"
         )
 
 
