@@ -66,7 +66,6 @@ class LoginCallbackView(APIView):
         # 가져온 user 객체를 통해 access_token 생성
         access_token = slcs.get_access_token(user)
 
-        response = Response({"status": 200, "message": "로그인 성공"})
         redirect_uri = ["https://ndd.life", "http://localhost:5173"]
         response = redirect(redirect_uri[dev])
         response.set_cookie(
@@ -74,6 +73,7 @@ class LoginCallbackView(APIView):
             max_age=timedelta(days=30),
             value=access_token,
             httponly=True,
+            domain='.ndd.life'
         )
 
         user.last_login = timezone.now()
