@@ -125,13 +125,16 @@ class CreateTempImage(APIView):
         if type_data not in ["main", "step"]:
             return Response({"error": "Invalid type"}, status=status.HTTP_400_BAD_REQUEST)
 
-        format, imgstr = image_data.split(";base64,")
-        ext = format.split("/")[-1]
-
-        try:
-            image_file = create_file(type_data, ext, imgstr, order)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        image_file = None
+        if image_data:
+            try:
+                format, imgstr = image_data.split(";base64,")
+                ext = format.split("/")[-1]
+                image_file = create_file(type_data, ext, imgstr, order)
+            except ValueError:
+                return Response({"error": "Invalid image data format"}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if type_data == "main":
             temp_recipe, _ = Temp_recipe.objects.get_or_create(user_id=user.id, status=1)
@@ -141,7 +144,7 @@ class CreateTempImage(APIView):
             data = {
                 "status": 201,
                 "message": "임시 레시피 이미지 저장 성공",
-                "data": {"id": temp_recipe.id, "image": temp_recipe.main_image.url},
+                "data": {"id": temp_recipe.id, "image": temp_recipe.main_image.url if temp_recipe.main_image else None},
             }
             return Response(data, status=status.HTTP_201_CREATED)
         else:
@@ -157,7 +160,7 @@ class CreateTempImage(APIView):
             data = {
                 "status": 201,
                 "message": "임시 레시피 이미지 저장 성공",
-                "data": {"id": temp_step.id, "image": temp_step.image.url},
+                "data": {"id": temp_step.id, "image": temp_step.image.url if temp_step.image else None},
             }
             return Response(data, status=status.HTTP_201_CREATED)
         
@@ -462,7 +465,6 @@ class RecipeSearchKeywordView(APIView):
         recipes = Recipe.objects.filter(
             Q(title__icontains=keyword)
             | Q(recipe_ingredient__ingredient__name__icontains=keyword)
-            | Q(recipe_step__step__icontains=keyword)
         ).distinct()
 
         if not recipes:
