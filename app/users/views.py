@@ -73,7 +73,7 @@ class LoginCallbackView(APIView):
             max_age=timedelta(days=30),
             value=access_token,
             httponly=True,
-            domain='.ndd.life'
+            domain=f'.{request.META.get("REMOTE_ADDR")}'
         )
 
         user.last_login = timezone.now()

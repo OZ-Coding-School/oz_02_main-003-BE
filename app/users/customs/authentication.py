@@ -57,9 +57,9 @@ class CustomCookieAuthentication(BaseAuthentication):
                 )
                 response.delete_cookie("ndd_access")
                 raise CustomException("다시 로그인 해주시기 바랍니다", 403, -498)
-            
+            print(request.META)
             # 에러 처리로 토큰 재발급 진행
-            raise CustomException("토큰 재발급됨", 401, -401, data={"user_id": user_id})
+            raise CustomException("토큰 재발급됨", 401, -401, data={"user_id": user_id, "host": request.META.get("REMOTE_ADDR")})
         except User.DoesNotExist:
             response = Response(
                 {"status": 400, "message": "없는 유저 입니다."},
