@@ -308,7 +308,7 @@ class AlertEnableView(APIView):
 
         enable = User.objects.get(id=user.id).is_alert
         return Response(
-            {"status": 200, "message": "알림여부 조회 성공", "data": {"status": 1}}
+            {"status": 200, "message": "알림여부 조회 성공", "data": {"status": enable}}
         )
 
     def put(self, request):
