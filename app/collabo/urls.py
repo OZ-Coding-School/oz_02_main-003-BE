@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import TestView
+from .views import *
 
 urlpatterns = [
     # /api/v1/collabo

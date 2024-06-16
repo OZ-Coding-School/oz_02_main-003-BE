@@ -19,8 +19,10 @@ class RecipeRecommendView(APIView):
         # 요청에서 사용자가 입력한 재료 ID 목록 가져오기
         user_id = request.user.id
         if not user_id:
-            return Response({"status": 400, "message": "사용자 인증이 필요합니다."}, status=400)
-        
+            return Response(
+                {"status": 400, "message": "사용자 인증이 필요합니다."}, status=400
+            )
+
         data = request.data
         ingredient_ids = data.get("ingredients", [])
 
@@ -104,26 +106,36 @@ class RecipeRecommendView(APIView):
 from .models import Temp_recipe, Temp_step, Unit
 from .utils import create_file
 
+
 class CreateTempImage(APIView):
     def post(self, request):
         user = request.user
 
         if not user.is_authenticated:
-            return Response({"status": "400", "message": "토큰이 없습니다"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"status": "400", "message": "토큰이 없습니다"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         actions = request.data.get("action")
         if actions != "write":
-            return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         if "image" not in request.data:
-            return Response({"error": "No image data provided"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "No image data provided"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         image_data = request.data["image"]
         type_data = request.data.get("type")
         order = request.data.get("order")
 
         if type_data not in ["main", "step"]:
-            return Response({"error": "Invalid type"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid type"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         image_file = None
         if image_data:
@@ -132,59 +144,87 @@ class CreateTempImage(APIView):
                 ext = format.split("/")[-1]
                 image_file = create_file(type_data, ext, imgstr, order)
             except ValueError:
-                return Response({"error": "Invalid image data format"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"error": "Invalid image data format"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             except Exception as e:
-                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(
+                    {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         if type_data == "main":
-            temp_recipe, _ = Temp_recipe.objects.get_or_create(user_id=user.id, status=1)
+            temp_recipe, _ = Temp_recipe.objects.get_or_create(
+                user_id=user.id, status=1
+            )
             temp_recipe.main_image = image_file
             temp_recipe.save()
 
             data = {
                 "status": 201,
                 "message": "임시 레시피 이미지 저장 성공",
-                "data": {"id": temp_recipe.id, "image": temp_recipe.main_image.url if temp_recipe.main_image else None},
+                "data": {
+                    "id": temp_recipe.id,
+                    "image": (
+                        temp_recipe.main_image.url if temp_recipe.main_image else None
+                    ),
+                },
             }
             return Response(data, status=status.HTTP_201_CREATED)
         else:
             temp_recipe = Temp_recipe.objects.filter(user_id=user.id, status=1).last()
 
             if not temp_recipe:
-                return Response({"error": "유효한 Temp_recipe를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {"error": "유효한 Temp_recipe를 찾을 수 없습니다."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
-            temp_step, _ = Temp_step.objects.get_or_create(recipe=temp_recipe, order=order)
+            temp_step, _ = Temp_step.objects.get_or_create(
+                recipe=temp_recipe, order=order
+            )
             temp_step.image = image_file
             temp_step.save()
 
             data = {
                 "status": 201,
                 "message": "임시 레시피 이미지 저장 성공",
-                "data": {"id": temp_step.id, "image": temp_step.image.url if temp_step.image else None},
+                "data": {
+                    "id": temp_step.id,
+                    "image": temp_step.image.url if temp_step.image else None,
+                },
             }
             return Response(data, status=status.HTTP_201_CREATED)
-        
-        
+
+
 import os
 from .utils import copy_file
 from config.settings import BUCKET_PATH
+
+
 class CreateRecipe(APIView):
     def post(self, request):
         user_id = request.user.id
         if not user_id:
-            return Response({"status": 400, "message": "사용자 인증이 필요합니다."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"status": 400, "message": "사용자 인증이 필요합니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
             temp_recipe = Temp_recipe.objects.filter(user_id=user_id, status=1).first()
 
             if not temp_recipe:
-                return Response({"error": "Temporary recipe not found."}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {"error": "Temporary recipe not found."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
             # 요청 데이터를 복사하여 수정 가능하게 만듭니다.
             data = request.data.copy()
 
-            recipe_ingredients_data = data.pop('recipe_ingredients', [])
-            steps_data = data.pop('steps', [])
+            recipe_ingredients_data = data.pop("recipe_ingredients", [])
+            steps_data = data.pop("steps", [])
 
             recipe = Recipe.objects.create(user_id=user_id, **data)
             temp_recipe.recipe = recipe
@@ -192,9 +232,9 @@ class CreateRecipe(APIView):
 
             # recipe_ingredients 데이터 처리
             for ingredient_data in recipe_ingredients_data:
-                ingredient_name = ingredient_data.get('name', None)
-                unit_id = ingredient_data.get('unit')
-                quantity = ingredient_data.get('quantity')
+                ingredient_name = ingredient_data.get("name", None)
+                unit_id = ingredient_data.get("unit")
+                quantity = ingredient_data.get("quantity")
 
                 # 재료를 DB에서 찾거나 없으면 새로 생성
                 try:
@@ -208,21 +248,18 @@ class CreateRecipe(APIView):
 
                 # RecipeIngredient 생성
                 Recipe_ingredient.objects.create(
-                    recipe=recipe,
-                    ingredient=ingredient,
-                    quantity=quantity,
-                    unit=unit
+                    recipe=recipe, ingredient=ingredient, quantity=quantity, unit=unit
                 )
 
             if temp_recipe.main_image:
                 main_image_source = temp_recipe.main_image.name
-                main_image_dest = f'{BUCKET_PATH}recipe/{recipe.id}/{os.path.basename(main_image_source)}'
+                main_image_dest = f"{BUCKET_PATH}recipe/{recipe.id}/{os.path.basename(main_image_source)}"
                 copy_file(main_image_source, main_image_dest)
 
                 recipe.main_image = main_image_dest
                 recipe.save()
 
-            temp_steps = Temp_step.objects.filter(recipe=temp_recipe).order_by('order')
+            temp_steps = Temp_step.objects.filter(recipe=temp_recipe).order_by("order")
             count = 0
 
             for i, step_text in enumerate(steps_data, 1):
@@ -232,14 +269,14 @@ class CreateRecipe(APIView):
                         temp_image = temp_steps[count].image
                         count += 1
 
-                step_data = {'recipe': recipe.id, 'step': step_text}
+                step_data = {"recipe": recipe.id, "step": step_text}
                 step_serializer = Recipe_stepSerializer(data=step_data)
 
                 if step_serializer.is_valid():
                     recipe_step = step_serializer.save()
                     if temp_image:
                         temp_image_source = temp_image.name
-                        temp_image_dest = f'{BUCKET_PATH}recipe/{recipe.id}/{os.path.basename(temp_image_source)}'
+                        temp_image_dest = f"{BUCKET_PATH}recipe/{recipe.id}/{os.path.basename(temp_image_source)}"
                         copy_file(temp_image_source, temp_image_dest)
 
                         recipe_step.image = temp_image_dest
@@ -259,11 +296,14 @@ class CreateRecipe(APIView):
             return Response(response_data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 from config.settings import MEDIA_URL
 from collabo.utils.interaction_utils import create_interaction
+
 
 class RecipeDetailDeleteView(APIView):
     def get(self, request, id):
@@ -302,8 +342,8 @@ class RecipeDetailDeleteView(APIView):
             else:
                 can_update = 0
 
-            ingredients = Recipe_ingredient.objects.filter(recipe_id=id).order_by('id')
-            steps = Recipe_step.objects.filter(recipe_id=id).order_by('id')
+            ingredients = Recipe_ingredient.objects.filter(recipe_id=id).order_by("id")
+            steps = Recipe_step.objects.filter(recipe_id=id).order_by("id")
             comments = (
                 Comment.objects.filter(recipe_id=id)
                 .select_related("user")
@@ -353,7 +393,6 @@ class RecipeDetailDeleteView(APIView):
                         "profile_image": MEDIA_URL + recipe.user.image,
                         "date": recipe.updated_at,
                     },
-                    
                     "ingredients": [
                         {
                             "id": ingredient.id,
@@ -364,7 +403,11 @@ class RecipeDetailDeleteView(APIView):
                         for ingredient in ingredients
                     ],
                     "steps": [
-                        {"step": step.step, "image": step.image.url if step.image else ""} for step in steps
+                        {
+                            "step": step.step,
+                            "image": step.image.url if step.image else "",
+                        }
+                        for step in steps
                     ],
                     "comments": comment_data,
                 },
@@ -502,9 +545,10 @@ class RecipeSearchKeywordView(APIView):
             "data": recipe_data,
         }
         return Response(response_data, status=status.HTTP_200_OK)
-    
+
 
 from django.db.models import F
+
 
 class RecipeStep(APIView):
     def delete(self, request, order):
@@ -514,16 +558,27 @@ class RecipeStep(APIView):
             # 사용자의 임시 레시피에서 order 값이 일치하는 레코드 찾기
             temp_recipe = Temp_recipe.objects.filter(user_id=user_id, status=1).first()
             if not temp_recipe:
-                return Response({"error": "Temporary recipe not found."}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {"error": "Temporary recipe not found."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
-            temp_step = Temp_step.objects.filter(recipe=temp_recipe, order=order).first()
+            temp_step = Temp_step.objects.filter(
+                recipe=temp_recipe, order=order
+            ).first()
             if temp_step:
                 temp_step.delete()
 
-            Temp_step.objects.filter(recipe=temp_recipe, order__gt=order).update(order=F('order') - 1)
+            Temp_step.objects.filter(recipe=temp_recipe, order__gt=order).update(
+                order=F("order") - 1
+            )
 
-            return Response({"status": 200, "message": "레시피 단계가 삭제되었습니다."}, status=status.HTTP_200_OK)
+            return Response(
+                {"status": 200, "message": "레시피 단계가 삭제되었습니다."},
+                status=status.HTTP_200_OK,
+            )
 
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
