@@ -68,7 +68,9 @@ class LoginCallbackView(APIView):
 
         redirect_uri = ["https://ndd.life", "http://localhost:5173"]
         response = redirect(redirect_uri[dev])
-        host = request.META.get("HTTP_HOST").split(":")[0]
+        host = request.META.get("HTTP_HOST")
+        if host.find(":8000"):
+            host = host.split(":")[0]
         response.set_cookie(
             key="ndd_access",
             max_age=timedelta(days=30),
