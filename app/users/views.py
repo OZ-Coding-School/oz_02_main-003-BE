@@ -68,12 +68,13 @@ class LoginCallbackView(APIView):
 
         redirect_uri = ["https://ndd.life", "http://localhost:5173"]
         response = redirect(redirect_uri[dev])
+        host = request.META.get("HTTP_HOST").split(":")[0]
         response.set_cookie(
             key="ndd_access",
             max_age=timedelta(days=30),
             value=access_token,
             httponly=True,
-            domain=f'.{request.META.get("REMOTE_ADDR")}'
+            domain=host,
         )
 
         user.last_login = timezone.now()
