@@ -69,14 +69,16 @@ class LoginCallbackView(APIView):
         redirect_uri = ["https://ndd.life", "http://localhost:5173"]
         response = redirect(redirect_uri[dev])
         host = request.META.get("HTTP_HOST")
-        if host.find(":8000"):
-            host = host.split(":")[0]
+        if host and (host.find('localhost') or host.find('127.0.0.1')):
+            domain = None  # localhost나 127.0.0.1인 경우 domain을 생략
+        else:
+            domain = '.ndd.life'  # 실제 도메인 설정
         response.set_cookie(
             key="ndd_access",
             max_age=timedelta(days=30),
             value=access_token,
             httponly=True,
-            domain=host,
+            domain=domain,
         )
 
         user.last_login = timezone.now()

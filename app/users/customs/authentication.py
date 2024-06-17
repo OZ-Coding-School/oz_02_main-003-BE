@@ -58,10 +58,12 @@ class CustomCookieAuthentication(BaseAuthentication):
                 response.delete_cookie("ndd_access")
                 raise CustomException("다시 로그인 해주시기 바랍니다", 403, -498)
             host = request.META.get("HTTP_HOST")
-            if host.find(":8000"):
-                host = host.split(":")[0]
+            if host and (host.find('localhost') or host.find('127.0.0.1')):
+                domain = None  # localhost나 127.0.0.1인 경우 domain을 생략
+            else:
+                domain = '.ndd.life'  # 실제 도메인 설정
             # 에러 처리로 토큰 재발급 진행
-            raise CustomException("토큰 재발급됨", 401, -401, data={"user_id": user_id, "host": host})
+            raise CustomException(f"토큰 재발급됨{request.META.get("HTTP_HOST")}", 401, -401, data={"user_id": user_id, "domain": domain})
         except User.DoesNotExist:
             response = Response(
                 {"status": 400, "message": "없는 유저 입니다."},
