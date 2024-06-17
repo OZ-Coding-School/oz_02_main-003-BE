@@ -55,6 +55,3 @@ def temp_upload_image(instance, filename):
     new_filename += "/" + filename
     return new_filename
 
-from config.settings import MEDIA_URL
-def get_image_uri(image_uri):
-    return MEDIA_URL + image_uri if image_uri else None

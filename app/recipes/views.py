@@ -102,7 +102,8 @@ class RecipeRecommendView(APIView):
 
 
 from .models import Temp_recipe, Temp_step, Unit
-from .utils import create_file, get_image_uri
+from .utils import create_file
+from common.utils.image_utils import get_image_uri
 
 class CreateTempImage(APIView):
     def post(self, request):
