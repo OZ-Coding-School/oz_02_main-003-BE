@@ -66,14 +66,17 @@ class LoginCallbackView(APIView):
         # 가져온 user 객체를 통해 access_token 생성
         access_token = slcs.get_access_token(user)
 
-        response = Response({"status": 200, "message": "로그인 성공"})
         redirect_uri = ["https://ndd.life", "http://localhost:5173"]
         response = redirect(redirect_uri[dev])
+        host = request.META.get("HTTP_HOST")
+        if host.find(":8000"):
+            host = host.split(":")[0]
         response.set_cookie(
             key="ndd_access",
             max_age=timedelta(days=30),
             value=access_token,
             httponly=True,
+            domain=host,
         )
 
         user.last_login = timezone.now()
@@ -308,7 +311,7 @@ class AlertEnableView(APIView):
 
         enable = User.objects.get(id=user.id).is_alert
         return Response(
-            {"status": 200, "message": "알림여부 조회 성공", "data": {"status": 1}}
+            {"status": 200, "message": "알림여부 조회 성공", "data": {"status": enable}}
         )
 
     def put(self, request):
