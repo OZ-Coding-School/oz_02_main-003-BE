@@ -228,7 +228,7 @@ class UserImageView(APIView):
                     {
                         "status": 200,
                         "message": "프로필 사진 저장 완료",
-                        "image_url": MEDIA_URL + relative_image_path,
+                        "image_url": get_image_uri(relative_image_path),
                     },
                     status=status.HTTP_200_OK,
                 )
@@ -246,7 +246,7 @@ class UserImageView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-
+from common.utils.image_utils import get_image_uri
 class MyPageView(APIView):
     def get(self, request, id, cnt):
         cnt = int(cnt)
@@ -281,7 +281,7 @@ class MyPageView(APIView):
                     "status": 200,
                     "message": "마이페이지 조회 완료",
                     "data": {
-                        "image": MEDIA_URL + user_serializer.data["image"],
+                        "image": get_image_uri(user_serializer.data["image"]),
                         "total_recipes_count": total_recipes_count,
                         "nickname": user_serializer.data["nickname"],
                         "recipes": recipe_serializer.data,
