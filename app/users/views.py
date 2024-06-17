@@ -66,14 +66,19 @@ class LoginCallbackView(APIView):
         # 가져온 user 객체를 통해 access_token 생성
         access_token = slcs.get_access_token(user)
 
-        response = Response({"status": 200, "message": "로그인 성공"})
         redirect_uri = ["https://ndd.life", "http://localhost:5173"]
         response = redirect(redirect_uri[dev])
+        host = request.META.get("HTTP_HOST")
+        if host and (host.find('localhost') or host.find('127.0.0.1')):
+            domain = None  # localhost나 127.0.0.1인 경우 domain을 생략
+        else:
+            domain = '.ndd.life'  # 실제 도메인 설정
         response.set_cookie(
             key="ndd_access",
             max_age=timedelta(days=30),
             value=access_token,
             httponly=True,
+            domain=domain,
         )
 
         user.last_login = timezone.now()
@@ -223,7 +228,7 @@ class UserImageView(APIView):
                     {
                         "status": 200,
                         "message": "프로필 사진 저장 완료",
-                        "image_url": MEDIA_URL + relative_image_path,
+                        "image_url": get_image_uri(relative_image_path),
                     },
                     status=status.HTTP_200_OK,
                 )
@@ -241,7 +246,7 @@ class UserImageView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-
+from common.utils.image_utils import get_image_uri
 class MyPageView(APIView):
     def get(self, request, id, cnt):
         cnt = int(cnt)
@@ -276,7 +281,7 @@ class MyPageView(APIView):
                     "status": 200,
                     "message": "마이페이지 조회 완료",
                     "data": {
-                        "image": MEDIA_URL + user_serializer.data["image"],
+                        "image": get_image_uri(user_serializer.data["image"]),
                         "total_recipes_count": total_recipes_count,
                         "nickname": user_serializer.data["nickname"],
                         "recipes": recipe_serializer.data,
@@ -308,7 +313,7 @@ class AlertEnableView(APIView):
 
         enable = User.objects.get(id=user.id).is_alert
         return Response(
-            {"status": 200, "message": "알림여부 조회 성공", "data": {"status": 1}}
+            {"status": 200, "message": "알림여부 조회 성공", "data": {"status": enable}}
         )
 
     def put(self, request):

@@ -105,7 +105,7 @@ class RecipeRecommendView(APIView):
 
 from .models import Temp_recipe, Temp_step, Unit
 from .utils import create_file
-
+from common.utils.image_utils import get_image_uri
 
 class CreateTempImage(APIView):
     def post(self, request):
@@ -354,7 +354,7 @@ class RecipeDetailDeleteView(APIView):
                     "updated_at",
                     "comment",
                     "user__image",
-                )
+                ).order_by("id")
             )
 
             # 각 댓글의 can_update 값 설정
@@ -369,7 +369,7 @@ class RecipeDetailDeleteView(APIView):
                         "id": comment["id"],
                         "user_id": comment["user__id"],
                         "user_nickname": comment["user__nickname"],
-                        "profile_image": MEDIA_URL + comment["user__image"],
+                        "profile_image": get_image_uri(comment["user__image"]),
                         "updated_at": comment["updated_at"],
                         "comment": comment["comment"],
                         "can_update": comment_can_update,
@@ -390,7 +390,7 @@ class RecipeDetailDeleteView(APIView):
                     "user": {
                         "id": recipe.user.id,
                         "nickname": recipe.user.nickname,
-                        "profile_image": MEDIA_URL + recipe.user.image,
+                        "profile_image": get_image_uri(recipe.user.image),
                         "date": recipe.updated_at,
                     },
                     "ingredients": [
@@ -483,7 +483,7 @@ class RecipeCategoryListView(APIView):
                 "id": recipe.id,
                 "user": user.nickname,
                 "title": recipe.title,
-                "main_image": recipe.main_image.url,
+                "main_image": get_image_uri(recipe.main_image.url),
                 "like": Like.objects.filter(recipe_id=recipe.id).count(),
                 "like_status": like_status,
                 "book": Bookmark.objects.filter(recipe_id=recipe.id).count(),
@@ -531,7 +531,7 @@ class RecipeSearchKeywordView(APIView):
                 "id": recipe.id,
                 "user": user.nickname,
                 "title": recipe.title,
-                "main_image": recipe.main_image.url,
+                "main_image": get_image_uri(recipe.main_image.url),
                 "like": Like.objects.filter(recipe_id=recipe.id).count(),
                 "like_status": like_status,
                 "book": Bookmark.objects.filter(recipe_id=recipe.id).count(),

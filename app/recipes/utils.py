@@ -54,3 +54,4 @@ def temp_upload_image(instance, filename):
     )
     new_filename += "/" + filename
     return new_filename
+
