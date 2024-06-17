@@ -53,14 +53,14 @@ def get_or_create_social_user(type, id, image_url=None):
     social_id = f"{type}_{id}"
     data = {"social_type": type, "social_id": social_id}
     user, created = User.objects.get_or_create(**data)
-    user.nickname = f"{user.id}번째 냉장고"
-    user.save()
-    if created and image_url:
-        image_file = get_image_from_url(image_url)
-        image_path, relative_image_path = generate_image_path(user, "jpeg")
-        if upload_image(image_file, image_path):
-            user.image = relative_image_path
-            user.save()
+    if created:
+        user.nickname = f"{user.id}번째 냉장고"
+        if image_url:
+            image_file = get_image_from_url(image_url)
+            image_path, relative_image_path = generate_image_path(user, "jpeg")
+            if upload_image(image_file, image_path):
+                user.image = relative_image_path
+        user.save()
     return user
 
 
