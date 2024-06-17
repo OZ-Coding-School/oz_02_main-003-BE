@@ -13,7 +13,13 @@ class UserNicknameSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['nickname']
-        
+    
+
+    def update(self, instance, validated_data):
+        instance.nickname = validated_data.get('nickname', instance.nickname)
+        instance.save()
+        return instance
+    
     def validate_nickname(self, value):
         if User.objects.filter(nickname=value).exists():
             raise serializers.ValidationError("이미 존재하는 닉네임입니다.")
