@@ -63,7 +63,7 @@ class CustomCookieAuthentication(BaseAuthentication):
             else:
                 domain = '.ndd.life'  # 실제 도메인 설정
             # 에러 처리로 토큰 재발급 진행
-            raise CustomException(f"토큰 재발급됨{request.META.get("HTTP_HOST")}", 401, -401, data={"user_id": user_id, "domain": domain})
+            raise CustomException(f"토큰 재발급됨", 401, -401, data={"user_id": user_id, "domain": domain})
         except User.DoesNotExist:
             response = Response(
                 {"status": 400, "message": "없는 유저 입니다."},
