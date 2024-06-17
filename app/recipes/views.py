@@ -32,6 +32,7 @@ class RecipeRecommendView(APIView):
         ingredient_names = [ingredient.name for ingredient in ingredients]
 
         # 입력된 재료를 포함하는 레시피 목록 조회
+        ## 유사도에서 
         recipes = Recipe.objects.filter(
             recipe_ingredient__ingredient__in=ingredients
         ).distinct()
@@ -460,8 +461,13 @@ class RecipeCategoryListView(APIView):
             # 사용자가 북마크한 레시피만 필터링
             recipes = Recipe.objects.filter(bookmark__user_id=user_id)
         elif category_name:
-            # 특정 카테고리의 레시피만 필터링
-            recipes = get_similar_recipes(user_id, category_name)
+            similar_recipes = get_similar_recipes(user_id)
+            for i in similar_recipes:
+                print(i.id, i.category)
+            filtered_recipes = similar_recipes.filter(category=category_name)
+            for i in filtered_recipes:
+                print(i.id, i.category)
+            limit_recipe = filtered_recipes[:5]
         else:
             return Response(
                 {
@@ -470,9 +476,8 @@ class RecipeCategoryListView(APIView):
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
-
         recipe_data = []
-        for recipe in recipes:
+        for recipe in limit_recipe:
             user = User.objects.get(id=recipe.user_id)
             like = Like.objects.filter(recipe_id=recipe.id, user_id=user_id).first()
             book = Bookmark.objects.filter(recipe_id=recipe.id, user_id=user_id).first()
