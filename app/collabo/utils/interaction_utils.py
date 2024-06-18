@@ -26,7 +26,6 @@ def get_recent_interactions(user):
     recent_interactions = (
         Interaction.objects.filter(user=user).order_by("-id").values_list("recipe_id", flat=True)
     )
-    print((Interaction.objects.filter(user=user).order_by("-id").values_list("recipe_id", flat=True)))
 
     recent_recipe_ids = []
     for i in recent_interactions:
