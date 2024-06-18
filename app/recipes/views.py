@@ -437,8 +437,8 @@ class RecipeCategoryListView(APIView):
         category_mapping = {
             "daily": "1",
             "healthy": "2",
-            "midnight": "3",
-            "desert": "4",
+            "desert": "3",
+            "midnight": "4",
         }
         return category_mapping.get(category, None)
 
