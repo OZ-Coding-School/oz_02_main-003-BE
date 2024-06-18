@@ -13,12 +13,17 @@ from likes.models import Like
 from comments.models import Comment
 from users.models import User
 
+from collabo.utils.interaction_utils import create_interaction
 
 class RecipeRecommendView(APIView):
     def post(self, request):
         # 요청에서 사용자가 입력한 재료 ID 목록 가져오기
         user_id = request.user.id
         if not user_id:
+            return Response(
+                {"status": 400, "message": "사용자 인증이 필요합니다."}, status=400
+            )
+
             return Response(
                 {"status": 400, "message": "사용자 인증이 필요합니다."}, status=400
             )
@@ -32,6 +37,7 @@ class RecipeRecommendView(APIView):
         ingredient_names = [ingredient.name for ingredient in ingredients]
 
         # 입력된 재료를 포함하는 레시피 목록 조회
+        ## 유사도에서 
         recipes = Recipe.objects.filter(
             recipe_ingredient__ingredient__in=ingredients
         ).distinct()
@@ -399,6 +405,9 @@ class RecipeDetailDeleteView(APIView):
                     "comments": comment_data,
                 },
             }
+
+            create_interaction(user, recipe)
+
             return Response(data)
         except Recipe.DoesNotExist:
             return Response(
@@ -421,6 +430,7 @@ class RecipeDetailDeleteView(APIView):
         data = {"status": 200, "message": "레시피 삭제 성공"}
         return Response(data, status=status.HTTP_200_OK)
 
+from collabo.utils.similary_utils import get_similar_recipes
 
 class RecipeCategoryListView(APIView):
     def get_category_name(self, category):
@@ -443,8 +453,9 @@ class RecipeCategoryListView(APIView):
             # 사용자가 북마크한 레시피만 필터링
             recipes = Recipe.objects.filter(bookmark__user_id=user_id)
         elif category_name:
-            # 특정 카테고리의 레시피만 필터링
-            recipes = Recipe.objects.filter(category=category_name)
+            similar_recipes = get_similar_recipes(user_id)
+            filtered_recipes = similar_recipes.filter(category=category_name)
+            limit_recipe = filtered_recipes
         else:
             return Response(
                 {
@@ -453,9 +464,8 @@ class RecipeCategoryListView(APIView):
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
-
         recipe_data = []
-        for recipe in recipes:
+        for recipe in limit_recipe:
             user = User.objects.get(id=recipe.user_id)
             like = Like.objects.filter(recipe_id=recipe.id, user_id=user_id).first()
             book = Bookmark.objects.filter(recipe_id=recipe.id, user_id=user_id).first()
