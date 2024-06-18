@@ -448,14 +448,13 @@ class RecipeCategoryListView(APIView):
 
         if category == "like":
             # 사용자가 좋아요를 누른 레시피만 필터링
-            recipes = Recipe.objects.filter(like__user_id=user_id)
+            filtered_recipes = Recipe.objects.filter(like__user_id=user_id)
         elif category == "book":
             # 사용자가 북마크한 레시피만 필터링
-            recipes = Recipe.objects.filter(bookmark__user_id=user_id)
+            filtered_recipes = Recipe.objects.filter(bookmark__user_id=user_id)
         elif category_name:
             similar_recipes = get_similar_recipes(user_id)
             filtered_recipes = similar_recipes.filter(category=category_name)
-            limit_recipe = filtered_recipes
         else:
             return Response(
                 {
@@ -464,6 +463,7 @@ class RecipeCategoryListView(APIView):
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
+        limit_recipe = filtered_recipes
         recipe_data = []
         for recipe in limit_recipe:
             user = User.objects.get(id=recipe.user_id)
