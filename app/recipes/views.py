@@ -13,12 +13,17 @@ from likes.models import Like
 from comments.models import Comment
 from users.models import User
 
+from collabo.utils.interaction_utils import create_interaction
 
 class RecipeRecommendView(APIView):
     def post(self, request):
         # 요청에서 사용자가 입력한 재료 ID 목록 가져오기
         user_id = request.user.id
         if not user_id:
+            return Response(
+                {"status": 400, "message": "사용자 인증이 필요합니다."}, status=400
+            )
+
             return Response(
                 {"status": 400, "message": "사용자 인증이 필요합니다."}, status=400
             )
@@ -107,6 +112,7 @@ class RecipeRecommendView(APIView):
 from .models import Temp_recipe, Temp_step, Unit
 from .utils import create_file
 from common.utils.image_utils import get_image_uri
+
 
 class CreateTempImage(APIView):
     def post(self, request):
@@ -302,10 +308,6 @@ class CreateRecipe(APIView):
             )
 
 
-from config.settings import MEDIA_URL
-from collabo.utils.interaction_utils import create_interaction
-
-
 class RecipeDetailDeleteView(APIView):
     def get(self, request, id):
         try:
@@ -315,30 +317,19 @@ class RecipeDetailDeleteView(APIView):
 
             # 테스트용 user_id 하드코딩
             user = request.user
+            if user:
 
-            like_status = (
-                Like.objects.filter(recipe_id=id, user_id=user.id)
-                .values_list("id", flat=True)
-                .first()
-            )
-            if like_status:
-                like_status = 1
-            else:
-                like_status = -1
+                like_status = Like.objects.filter(recipe_id=id, user_id=user.id).first()
 
-            bookmark_status = (
-                Bookmark.objects.filter(recipe_id=id, user_id=user.id)
-                .values_list("id", flat=True)
-                .first()
-            )
-            if bookmark_status:
-                bookmark_status = 1
-            else:
-                bookmark_status = -1
+                bookmark_status = Bookmark.objects.filter(
+                    recipe_id=id, user_id=user.id
+                ).first()
 
-            # is_staff 값이 True이거나 user_id가 본인이면 canUpdate를 1로 설정
-            user = User.objects.get(id=user.id)
-            if user.is_staff or user.id == recipe.user.id:
+            like_status = 1 if user and like_status else -1
+            bookmark_status = 1 if user and bookmark_status else -1
+
+            # is_staff 값이 True이거나 user.id가 본인이면 canUpdate를 1로 설정
+            if user and (user.is_staff or user.id == recipe.user.id):
                 can_update = 1
             else:
                 can_update = 0
@@ -355,13 +346,14 @@ class RecipeDetailDeleteView(APIView):
                     "updated_at",
                     "comment",
                     "user__image",
-                ).order_by("id")
+                )
+                .order_by("id")
             )
 
             # 각 댓글의 can_update 값 설정
             comment_data = []
             for comment in comments:
-                if user.is_staff or comment["user__id"] == user.id:
+                if user and (user.is_staff or comment["user__id"] == user.id):
                     comment_can_update = 1
                 else:
                     comment_can_update = 0

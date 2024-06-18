@@ -26,7 +26,7 @@ from datetime import timedelta
 
 
 class LoginView(APIView):
-    # authentication_classes = [CustomCookieAuthentication]
+    authentication_classes = []
     def get(self, request):
         social_types = ("kakao", "google")
 
@@ -50,6 +50,7 @@ class LoginView(APIView):
 
 
 class LoginCallbackView(APIView):
+    authentication_classes = []
     def get(self, request, social, dev):
         data = request.query_params.copy()
 
