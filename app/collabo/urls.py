@@ -1,7 +1,7 @@
 from django.urls import path
-from .views import *
+from .views import SaveRecipeSimilarView
 
 urlpatterns = [
     # /api/v1/collabo
-    path("", TestView.as_view(), name="create-recipe"),
+    path("", SaveRecipeSimilarView.as_view(), name="create-recipe"),
 ]
