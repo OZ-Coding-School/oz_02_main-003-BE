@@ -453,7 +453,7 @@ class RecipeCategoryListView(APIView):
             # 사용자가 북마크한 레시피만 필터링
             filtered_recipes = Recipe.objects.filter(bookmark__user_id=user_id)
         elif category_name:
-            similar_recipes = get_similar_recipes(user_id, category_name)
+            similar_recipes = get_similar_recipes(user_id)
             filtered_recipes = similar_recipes.filter(category=category_name)
         else:
             return Response(
