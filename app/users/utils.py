@@ -102,22 +102,22 @@ def get_is_product(remote):
     return remote == PUBLIC_URL
 
 
-def get_cookie_domain(remote):
-    if remote == PUBLIC_URL:
+def get_cookie_domain(host):
+    if host == PUBLIC_URL:
         return f".{PUBLIC_URL}"
-    return remote
+    return host.split(":")[0]
 
 
 def get_cookie_settings(request, token):
-    remote = get_user_remote(request)
-    is_product = get_is_product(remote)
+    host = get_user_host(request)
+    is_product = get_is_product(host)
 
     cookie_settings = {
         "key": ACCESS_TOKEN_COOKIE_NAME,
         "max_age": timedelta(days=30),
         "value": token,
         "httponly": True,
-        "domain": get_cookie_domain(remote),
+        "domain": get_cookie_domain(host),
         "secure": is_product
     }
 
