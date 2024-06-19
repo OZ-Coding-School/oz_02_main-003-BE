@@ -12,21 +12,24 @@ User = get_user_model()
 import os
 import uuid
 
+
 def generate_image_path(user, ext):
     BUCKET_PATH = settings.BUCKET_PATH
     unique_filename = f"{user.nickname}_{uuid.uuid1().hex}.{ext}"
-    image_path = os.path.join(BUCKET_PATH, 'user', str(user.id), unique_filename)
-    relative_image_path = os.path.join('user', str(user.id), unique_filename)
+    image_path = os.path.join(BUCKET_PATH, "user", str(user.id), unique_filename)
+    relative_image_path = os.path.join("user", str(user.id), unique_filename)
     return image_path, relative_image_path
+
 
 from django.core.files.base import ContentFile
 from botocore.exceptions import NoCredentialsError
+
 
 def get_image_from_url(url):
     # 이미지 URL에서 이미지 데이터 가져오기
     with urllib.request.urlopen(url) as resp:
         image_data = resp.read()
-    
+
     return ContentFile(image_data)
 
 
@@ -37,17 +40,18 @@ def upload_image(image_file, image_path):
             settings.AWS_STORAGE_BUCKET_NAME,
             image_path,
             ExtraArgs={
-                'ContentType': 'image/jpeg',
+                "ContentType": "image/jpeg",
             },
         )
 
         return True
-    
+
     except NoCredentialsError:
         return False
 
 
 # http://127.0.0.1:8000/api/v1/users/auth/login?social=google&dev=1
+
 
 def get_or_create_social_user(type, id, image_url=None):
     social_id = f"{type}_{id}"
@@ -78,3 +82,47 @@ def update_or_create_refresh_token_data(user, token):
         defaults=new_refresh_token_data, **{"user": user}
     )
 
+
+from common.data.envdata import ACCESS_TOKEN_COOKIE_NAME
+from datetime import timedelta
+
+PUBLIC_URL = "ndd.life"
+
+
+def get_user_remote(request):
+    return request.META.get("REMOTE_ADDR", None)
+
+def get_user_host(request):
+    """유저의 호스트 가져오기"""
+    return request.META.get("HTTP_HOST", None)
+
+
+def get_is_product(remote):
+    """host가 배포된 환경인지 로컬인지 판단"""
+    return remote == PUBLIC_URL
+
+
+def get_cookie_domain(remote):
+    if remote == PUBLIC_URL:
+        return f".{PUBLIC_URL}"
+    return remote
+
+
+def get_cookie_settings(request, token):
+    remote = get_user_remote(request)
+    is_product = get_is_product(remote)
+
+    cookie_settings = {
+        "key": ACCESS_TOKEN_COOKIE_NAME,
+        "max_age": timedelta(days=30),
+        "value": token,
+        "httponly": True,
+        "domain": get_cookie_domain(remote),
+        "secure": is_product
+    }
+
+    return cookie_settings
+
+
+def set_jwt_cookie(request, response, token):
+    response.set_cookie(**get_cookie_settings(request, token))

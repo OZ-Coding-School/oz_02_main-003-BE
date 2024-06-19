@@ -27,6 +27,7 @@ class SocialLoginServices:
             "google": "https://accounts.google.com/o/oauth2/v2/auth",
         }
         callback_uri = f"{HOST}/api/v1/users/auth/login/callback/{type}/{dev if dev else 0}"
+        print('callback', callback_uri)
         redirect_uri = f"{OAUTH2_API[type]}?client_id={app_key}&response_type=code&redirect_uri={callback_uri}"
         if type == "google":
             scope = (
