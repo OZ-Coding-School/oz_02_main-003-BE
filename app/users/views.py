@@ -50,7 +50,7 @@ class LoginView(APIView):
         return Response({"status": 400, "message": "토큰이 없습니다."})
 
 
-from .utils import set_jwt_cookie, get_user_host, get_cookie_settings, get_user_remote, g
+from .utils import set_jwt_cookie, get_user_host, get_cookie_settings, get_user_remote
 
 
 class LoginCallbackView(APIView):
