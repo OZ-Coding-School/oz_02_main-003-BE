@@ -54,7 +54,7 @@ class MainPageView(APIView):
         category_recipes = Recipe.objects.filter(category=category_id).annotate(
             likes_count=Count("like", distinct=True),
             bookmarks_count=Count("bookmark", distinct=True),
-        )[:4]
+        ).order_by("-id")[:4]
 
         # 각 레시피에 대해 사용자의 좋아요 및 북마크 상태를 설정
         for recipe in category_recipes:
