@@ -74,7 +74,7 @@ class LoginCallbackView(APIView):
         access_token = slcs.get_access_token(user)
         # return Response(get_cookie_settings(request, access_token, dev))
         def get_response(host, dev=None):
-            if dev:
+            if dev in [0, 1]:
                 redirect_uri = ["https://ndd.life", "http://localhost:5173"]
                 return redirect(redirect_uri[dev])
             
