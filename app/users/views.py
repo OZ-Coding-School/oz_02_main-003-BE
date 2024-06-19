@@ -50,13 +50,14 @@ class LoginView(APIView):
         return Response({"status": 400, "message": "토큰이 없습니다."})
 
 
-from .utils import set_jwt_cookie, get_user_host, get_cookie_settings
+from .utils import set_jwt_cookie, get_user_host, get_cookie_settings, get_user_remote, g
 
 
 class LoginCallbackView(APIView):
     authentication_classes = []
 
     def get(self, request, social, dev):
+        
         data = request.query_params.copy()
 
         code = data.get("code")
@@ -71,7 +72,11 @@ class LoginCallbackView(APIView):
         user = slcs.get_user(social_token)
         # 가져온 user 객체를 통해 access_token 생성
         access_token = slcs.get_access_token(user)
-
+        return Response({
+            "host": get_user_host(request),
+            "remote": get_user_remote(request),
+            "domain": get_cookie_settings(request, access_token)
+        })
         def get_response(host):
             if host.startswith("127.0.0.1"):
                 return Response(get_cookie_settings(request, access_token))
