@@ -50,9 +50,6 @@ class LoginView(APIView):
         return Response({"status": 400, "message": "토큰이 없습니다."})
 
 
-from .utils import set_jwt_cookie, get_user_host, get_cookie_settings, get_user_remote
-
-
 class LoginCallbackView(APIView):
     authentication_classes = []
 
@@ -73,16 +70,20 @@ class LoginCallbackView(APIView):
         # 가져온 user 객체를 통해 access_token 생성
         access_token = slcs.get_access_token(user)
         # return Response(get_cookie_settings(request, access_token, dev))
-        def get_response(host, dev=None):
-            if dev in [0, 1]:
-                redirect_uri = ["https://ndd.life", "http://localhost:5173"]
-                return redirect(redirect_uri[dev])
-            
-            if host.startswith("127.0.0.1"):
-                return Response(get_cookie_settings(request, access_token, dev))
-
-        response = get_response(get_user_host(request), dev)
-        set_jwt_cookie(request, response, access_token, dev)
+        redirect_uri = ["https://ndd.life", "http://localhost:5173"]
+        response = redirect(redirect_uri[dev])
+        host = request.META.get("HTTP_HOST")
+        if host and (host.find("localhost") or host.find("127.0.0.1")):
+            domain = None  # localhost나 127.0.0.1인 경우 domain을 생략
+        else:
+            domain = ".ndd.life"  # 실제 도메인 설정
+        response.set_cookie(
+            key="ndd_access",
+            max_age=timedelta(days=30),
+            value=access_token,
+            httponly=True,
+            domain=domain,
+        )
 
         user.last_login = timezone.now()
         user.is_login = True
