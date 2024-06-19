@@ -49,13 +49,14 @@ s3_client = boto3.client(
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 # BUCKET_PATH 설정
 BUCKET_PATH = env('BUCKET_PATH')
-if str(os.environ.get("DEV", False)).lower() in ["true", "1"]:
+DEV = os.environ.get("DEV", False)
+if str(DEV).lower() in ["true", "1"]:
     BUCKET_PATH = "test/" + BUCKET_PATH
 
 MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/' + BUCKET_PATH
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = str(os.environ.get("DEV", False)).lower() in ["true", "1"]
+DEBUG = str(DEV).lower() in ["true", "1"]
 
 ALLOWED_HOSTS = ["*"]
 
