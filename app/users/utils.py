@@ -108,7 +108,7 @@ def get_cookie_domain(host):
     return host.split(":")[0]
 
 
-def get_cookie_settings(request, token):
+def get_cookie_settings(request, token, dev):
     host = get_user_host(request)
     is_product = get_is_product(host)
 
@@ -121,8 +121,13 @@ def get_cookie_settings(request, token):
         "secure": is_product
     }
 
+    if dev:
+        print(get_cookie_domain(host))
+        cookie_settings["domain"] = None
+        print(is_product)
+
     return cookie_settings
 
 
-def set_jwt_cookie(request, response, token):
-    response.set_cookie(**get_cookie_settings(request, token))
+def set_jwt_cookie(request, response, token, dev=None):
+    response.set_cookie(**get_cookie_settings(request, token, dev))

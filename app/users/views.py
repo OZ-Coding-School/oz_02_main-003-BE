@@ -57,7 +57,7 @@ class LoginCallbackView(APIView):
     authentication_classes = []
 
     def get(self, request, social, dev):
-        
+
         data = request.query_params.copy()
 
         code = data.get("code")
@@ -72,20 +72,17 @@ class LoginCallbackView(APIView):
         user = slcs.get_user(social_token)
         # 가져온 user 객체를 통해 access_token 생성
         access_token = slcs.get_access_token(user)
-        return Response({
-            "host": get_user_host(request),
-            "remote": get_user_remote(request),
-            "domain": get_cookie_settings(request, access_token)
-        })
-        def get_response(host):
+        # return Response(get_cookie_settings(request, access_token, dev))
+        def get_response(host, dev=None):
+            if dev:
+                redirect_uri = ["https://ndd.life", "http://localhost:5173"]
+                return redirect(redirect_uri[dev])
+            
             if host.startswith("127.0.0.1"):
-                return Response(get_cookie_settings(request, access_token))
-            redirect_http = {"ndd.life": "https", "localhost": "http"}
-            remote = host.split(":")[0]
-            return redirect(f"{redirect_http[remote]}://{host}")
+                return Response(get_cookie_settings(request, access_token, dev))
 
-        response = get_response(get_user_host(request))
-        set_jwt_cookie(request, response, access_token)
+        response = get_response(get_user_host(request), dev)
+        set_jwt_cookie(request, response, access_token, dev)
 
         user.last_login = timezone.now()
         user.is_login = True
