@@ -430,7 +430,7 @@ class RecipeDetailDeleteView(APIView):
         data = {"status": 200, "message": "레시피 삭제 성공"}
         return Response(data, status=status.HTTP_200_OK)
 
-from collabo.utils.similary_utils import get_similar_recipes
+from collabo.utils.similary_utils import get_recommend_recipes
 
 class RecipeCategoryListView(APIView):
     def get_category_name(self, category):
@@ -453,8 +453,10 @@ class RecipeCategoryListView(APIView):
             # 사용자가 북마크한 레시피만 필터링
             filtered_recipes = Recipe.objects.filter(bookmark__user_id=user_id)
         elif category_name:
-            similar_recipes = get_similar_recipes(user_id, category_name)
-            filtered_recipes = similar_recipes.filter(category=category_name)
+            similar_recipes, updated_recipes = get_recommend_recipes(user_id)
+            filtered_similar_recipes = similar_recipes.filter(category=category_name)
+            filtered_updated_recipes = updated_recipes.filter(category=category_name) if updated_recipes else []
+            filtered_recipes = list(filtered_similar_recipes) + list(filtered_updated_recipes)
         else:
             return Response(
                 {

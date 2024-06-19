@@ -9,8 +9,6 @@ from users.models import User
 
 class LikeToggleView(APIView):
     def post(self, request):
-        # user_id = request.data.get("user")
-        # user = User.objects.get(id=user_id)
         user = request.user
         if not user:
             return Response(
@@ -20,9 +18,8 @@ class LikeToggleView(APIView):
         recipe_id = request.data.get("recipe")
         
         try:
-            recipe = Recipe.objects.get(id=recipe_id)
-            
-            Like.objects.get(user=user, recipe=recipe).delete()
+            print(Like.objects.get(user=user, recipe_id=recipe_id))
+            Like.objects.get(user=user, recipe_id=recipe_id).delete()
             message = "좋아요 취소"
             status_value = -1
             
@@ -33,7 +30,7 @@ class LikeToggleView(APIView):
             )
             
         except Like.DoesNotExist:
-            Like.objects.create(user=user, recipe=recipe)
+            Like.objects.create(user=user, recipe_id=recipe_id)
             message = "좋아요 등록"
             status_value = 1
             
