@@ -57,9 +57,17 @@ class MainPageView(APIView):
             .order_by("-likes_count")
             .first()
         )
+        print(Recipe.objects.filter(
+                like__created_at__range=[*self.get_last_week_datetime()]
+            )
+            .annotate(
+                likes_count=Count("like"),
+            )
+            .order_by("-likes_count").query)
         # 각 레시피에 대해 사용자의 좋아요 상태를 설정
         best_recipe.like_status = self.get_user_like_status(best_recipe.id, user_id)
 
+        best_recipe.likes_count = len(Like.objects.filter(recipe=best_recipe))
         return best_recipe
 
     # 북마크된 레시피 중 가장 인기 있는 레시피를 가져오는 메서드
@@ -79,6 +87,8 @@ class MainPageView(APIView):
         best_bookmarked_recipe.status = self.get_user_bookmark_status(
             best_bookmarked_recipe.id, user_id
         )
+
+        best_bookmarked_recipe.bookmarks_count = len(Bookmark.objects.filter(recipe=best_bookmarked_recipe))
 
         return best_bookmarked_recipe
 
