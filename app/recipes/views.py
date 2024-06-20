@@ -506,16 +506,23 @@ class RecipeSearchKeywordView(APIView):
         if not keyword:
             return Response({"message": "검색어를 입력해 주세요."}, status=400)
 
-        recipes = Recipe.objects.filter(
+        similar_recipes, updated_recipes = get_recommend_recipes(user_id)
+        filtered_similer_recipes = similar_recipes.filter(
+            Q(title__icontains=keyword)
+            | Q(recipe_ingredient__ingredient__name__icontains=keyword)
+        ).distinct()
+        filtered_updated_recipes = updated_recipes.filter(
             Q(title__icontains=keyword)
             | Q(recipe_ingredient__ingredient__name__icontains=keyword)
         ).distinct()
 
-        if not recipes:
+        filtered_recipes = list(filtered_similer_recipes) + list(filtered_updated_recipes)
+
+        if not filtered_recipes:
             return Response({"message": "해당되는 레시피가 없습니다."}, status=404)
 
         recipe_data = []
-        for recipe in recipes:
+        for recipe in filtered_recipes:
             user = User.objects.get(id=recipe.user_id)
             like = Like.objects.filter(recipe_id=recipe.id, user_id=user_id).first()
             book = Bookmark.objects.filter(recipe_id=recipe.id, user_id=user_id).first()
