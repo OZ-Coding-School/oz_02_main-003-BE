@@ -84,7 +84,7 @@ class MainPageView(APIView):
         )
 
         # 각 레시피에 대해 사용자의 북마크 상태를 설정
-        best_bookmarked_recipe.status = self.get_user_bookmark_status(
+        best_bookmarked_recipe.bookmark_status = self.get_user_bookmark_status(
             best_bookmarked_recipe.id, user_id
         )
 
