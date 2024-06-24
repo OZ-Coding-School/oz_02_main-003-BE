@@ -1,0 +1,23 @@
+name: deploy-dev-ncp
+on:
+  push:
+    branches:
+      - develop
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH-Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{secrets.NCP_SSH_IP}}
+          username: ${{secrets.NCP_SSH_ID}}
+          password: ${{secrets.NCP_SSH_PASSWORD}}
+          port: ${{secrets.NCP_SSH_PORT}}
+          script: |
+            whoami
+            cd ~/ndd
+            git pull origin develop
+            docker compose down
+            docker compose build
+            docker compose up -d

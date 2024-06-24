@@ -1,0 +1,51 @@
+version: '3'
+
+services:
+  ndd:
+    container_name: 'django'
+    build:
+      context: .
+    ports:
+      - '8000:8000'
+    restart: always
+    volumes:
+      - ./app:/ndd/app
+      - ./log/gunicorn:/log
+      - static-data:/ndd/statics
+    environment:
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_PORT=${DB_PORT}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - GOOGLE_OAUTH2_CLIENT_ID=${GOOGLE_OAUTH2_CLIENT_ID}
+      - GOOGLE_OAUTH2_CLIENT_SECRET=${GOOGLE_OAUTH2_CLIENT_SECRET}
+      - KAKAO_OAUTH2_CLIENT_ID=${KAKAO_OAUTH2_CLIENT_ID}
+      - KAKAO_OAUTH2_CLIENT_SECRET=${KAKAO_OAUTH2_CLIENT_SECRET}
+      - HOST=${HOST}
+      - DEV=${DEV}
+      - BUCKET_PATH=${BUCKET_PATH}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
+      - AWS_S3_REGION_NAME=${AWS_S3_REGION_NAME}
+    depends_on:
+      - db
+
+  db:
+    container_name: 'postgres'
+    image: postgres:latest
+    restart: always
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    ports:
+      - 5432:5432
+
+volumes:
+  postgres-data:
+  static-data:
